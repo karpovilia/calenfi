@@ -22,8 +22,10 @@ jobs:
       - name: Install Linux build deps
         run: |
           sudo apt-get update
+          # libsecret-1-dev + libjsoncpp-dev нужны flutter_secure_storage_linux
+          # (нативный плагин keyring), иначе `flutter build linux` падает на CMake.
           sudo apt-get install -y clang cmake ninja-build pkg-config \
-            libgtk-3-dev liblzma-dev libstdc++-12-dev
+            libgtk-3-dev liblzma-dev libsecret-1-dev libjsoncpp-dev
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '${{ env.FLUTTER_VERSION }}', channel: stable, cache: true }
       - run: flutter pub get
