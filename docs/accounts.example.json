@@ -1,0 +1,31 @@
+[
+  {
+    "id": "acc-google",
+    "provider": "google",
+    "displayName": "Google",
+    "email": "me@gmail.com"
+  },
+  {
+    "id": "acc-o365",
+    "provider": "graph",
+    "displayName": "Office 365",
+    "email": "me@company.com"
+  },
+  {
+    "id": "acc-caldav",
+    "provider": "caldav",
+    "displayName": "Yandex",
+    "email": "me@yandex.ru",
+    "config": {
+      "caldavHost": "caldav.yandex.ru",
+      "caldavPort": 8443,
+      "caldavPrincipalPath": "/principals/users/me@yandex.ru/"
+    }
+  },
+  {
+    "id": "acc-exchange",
+    "provider": "ews",
+    "displayName": "Exchange",
+    "email": "me@university.edu"
+  }
+]

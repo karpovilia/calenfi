@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Calenfi agent CLI wrapper. Чистый JSON в stdout (служебный вывод dart — в /dev/null).
+# Использование: tools/calenfi <command> [--flags].  Команды: см. `tools/calenfi help`.
+cd "$(dirname "$0")/.." || exit 1
+DART="$HOME/development/flutter/bin/dart"
+[ -x "$DART" ] || DART=dart
+exec "$DART" run bin/calenfi.dart "$@" 2>/dev/null

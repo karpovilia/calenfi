@@ -1,0 +1,59 @@
+# ─── Secrets / local config — NEVER commit ───────────────────────────────
+# Calenfi keeps credentials in the OS keyring; these are only dev/import files.
+secrets.env
+*.secrets.env
+secrets.json
+.tokens/
+accounts.json
+*.local
+.env
+**/.env
+google_client_secret.json
+client_secret*.json
+
+# ─── Flutter / Dart ──────────────────────────────────────────────────────
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+.pub-cache/
+.pub/
+coverage/
+*.g.dart.bak
+
+# ─── Android ─────────────────────────────────────────────────────────────
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/upload-keystore.jks
+android/**/GeneratedPluginRegistrant.java
+**/*.keystore
+**/*.jks
+
+# ─── iOS / macOS (generated on the build host) ───────────────────────────
+ios/
+macos/
+**/Flutter/ephemeral/
+**/Pods/
+*.xcworkspace/xcuserdata/
+
+# ─── Linux / Windows ephemeral ───────────────────────────────────────────
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# ─── IDE / OS ────────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ─── Python tooling (contacts export) ────────────────────────────────────
+tools/.venv/
+tools/__pycache__/
+__pycache__/
+*.pyc
+
+# ─── Private artifacts never meant for the public repo ───────────────────
+contacts/
+docs/tmp/

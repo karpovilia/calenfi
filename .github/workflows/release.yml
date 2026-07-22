@@ -1,0 +1,104 @@
+name: Release
+
+# Собирает бинарники под все 4 платформы на нативных раннерах GitHub и
+# прикладывает их к GitHub Release. Триггер — тег vMAJOR.MINOR.PATCH (SemVer).
+# Токен не нужен: используется встроенный GITHUB_TOKEN.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  # ─────────────────────────── Linux ────────────────────────────
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: flutter build linux --release
+      - name: Package
+        run: |
+          cd build/linux/x64/release/bundle
+          tar czf "$GITHUB_WORKSPACE/calenfi-${GITHUB_REF_NAME}-linux-x64.tar.gz" .
+      - uses: actions/upload-artifact@v4
+        with: { name: linux, path: calenfi-*-linux-x64.tar.gz }
+
+  # ────────────────────────── Windows ───────────────────────────
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: flutter build windows --release
+      - name: Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build/windows/x64/runner/Release/* `
+            -DestinationPath "calenfi-${env:GITHUB_REF_NAME}-windows-x64.zip"
+      - uses: actions/upload-artifact@v4
+        with: { name: windows, path: calenfi-*-windows-x64.zip }
+
+  # ─────────────────────────── macOS ────────────────────────────
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      # macos/ нет в репо (Flutter генерит её только на Mac) — создаём скриптом:
+      # он же патчит entitlements (сеть, Keychain, sandbox off) под нашу схему.
+      - run: bash tools/setup_macos.sh
+      - run: flutter build macos --release
+      - name: Package
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -ry "$GITHUB_WORKSPACE/calenfi-${GITHUB_REF_NAME}-macos.zip" calenfi.app
+      - uses: actions/upload-artifact@v4
+        with: { name: macos, path: calenfi-*-macos.zip }
+
+  # ────────────────────────── Android ───────────────────────────
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+      # split-per-abi: отдельный APK на каждую архитектуру (меньше размер).
+      # Подпись — debug-ключом (для release-подписи добавьте keystore в secrets).
+      - run: flutter build apk --release --split-per-abi
+      - name: Rename APKs
+        run: |
+          cd build/app/outputs/flutter-apk
+          for f in app-*-release.apk; do
+            abi="${f#app-}"; abi="${abi%-release.apk}"
+            cp "$f" "$GITHUB_WORKSPACE/calenfi-${GITHUB_REF_NAME}-${abi}.apk"
+          done
+      - uses: actions/upload-artifact@v4
+        with: { name: android, path: calenfi-*.apk }
+
+  # ─────────────────── публикация GitHub Release ─────────────────
+  release:
+    needs: [linux, windows, macos, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: dist, merge-multiple: true }
+      - name: Create / update release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
