@@ -95,4 +95,4 @@ tools/        auth helpers, contacts export, setup scripts
 
 ## License
 
-[MIT](LICENSE) © 2026 Ilya Karpov
+[MIT](LICENSE) © 2026 Ilia Karpov
