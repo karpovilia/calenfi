@@ -311,6 +311,19 @@ class CalDavProvider implements CalendarProvider {
     }
   }
 
+  /// Короткий стабильный токен календаря для id события: последний непустой
+  /// сегмент пути (напр. `events-10922764`). Нужен, чтобы id был УНИКАЛЕН per
+  /// календарь: CalDAV-сервер (Яндекс) кладёт одно приглашение с одним UID в
+  /// НЕСКОЛЬКО коллекций (основной календарь + календарь переговорки). Раньше
+  /// id был `acc:UID` — одна строка на все копии, и copy из скрытого календаря
+  /// перезаписывала копию из видимого → событие «пропадало» из сетки.
+  /// Теперь копии сосуществуют (склейка дублей объединяет их в UI), а
+  /// видимость календаря фильтрует каждую копию отдельно.
+  static String _calToken(Calendar cal) {
+    final segs = cal.id.split('/').where((s) => s.isNotEmpty);
+    return segs.isEmpty ? cal.id : segs.last;
+  }
+
   CalendarEvent _build(Account acc, Calendar cal, VEvent v, String href,
       String? etag, DateTime start, DateTime end, String? recurrenceId) {
     final myEmail = acc.email.toLowerCase();
@@ -325,7 +338,8 @@ class CalDavProvider implements CalendarProvider {
       _ => EventStatus.confirmed,
     };
     return CalendarEvent(
-      id: '${acc.id}:${v.uid}${recurrenceId != null ? ':$recurrenceId' : ''}',
+      id: '${acc.id}:${_calToken(cal)}:${v.uid}'
+          '${recurrenceId != null ? ':$recurrenceId' : ''}',
       calendarId: cal.id,
       title: v.summary,
       startUtc: start,
