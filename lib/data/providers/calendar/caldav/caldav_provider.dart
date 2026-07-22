@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
+import 'package:meta/meta.dart';
 import 'package:rrule/rrule.dart';
 import 'package:xml/xml.dart';
 
@@ -324,6 +325,11 @@ class CalDavProvider implements CalendarProvider {
     return segs.isEmpty ? cal.id : segs.last;
   }
 
+  /// Открытая обёртка [_build] для тестов (регресс календарно-скоупных id).
+  @visibleForTesting
+  CalendarEvent buildEventForTest(Account acc, Calendar cal, VEvent v) =>
+      _build(acc, cal, v, 'href', null, v.startUtc, v.endUtc, null);
+
   CalendarEvent _build(Account acc, Calendar cal, VEvent v, String href,
       String? etag, DateTime start, DateTime end, String? recurrenceId) {
     final myEmail = acc.email.toLowerCase();
@@ -397,6 +403,10 @@ class CalDavProvider implements CalendarProvider {
       ..writeln('DTSTART:${dt(e.startUtc)}')
       ..writeln('DTEND:${dt(e.endUtc)}')
       ..writeln('SUMMARY:${_esc(e.title)}');
+    // Повторяющаяся серия (FR-E6). RRULE только у мастера, не у экземпляров.
+    if (e.recurrenceRule != null && e.recurrenceId == null) {
+      buf.writeln('RRULE:${e.recurrenceRule}');
+    }
     if (e.location != null) buf.writeln('LOCATION:${_esc(e.location!)}');
     // Кросс-аккаунтная конференция (Teams/Meet/Zoom/Telemost) встраивается в
     // описание — CalDAV сам конференции не заводит.

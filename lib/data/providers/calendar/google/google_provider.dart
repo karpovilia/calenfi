@@ -302,6 +302,11 @@ class GoogleProvider implements CalendarProvider {
       'summary': e.title,
       'start': time(e.startUtc),
       'end': time(e.endUtc),
+      // Повторяющаяся серия (FR-E6): RRULE как есть. Времена шлём в UTC,
+      // поэтому BYDAY трактуется по UTC-дню — для дневных встреч это тот же
+      // день недели, что и локально.
+      if (e.recurrenceRule != null && e.recurrenceId == null)
+        'recurrence': ['RRULE:${e.recurrenceRule}'],
       if (e.location != null) 'location': e.location,
       'description': ? description,
       if (e.attendees.isNotEmpty)

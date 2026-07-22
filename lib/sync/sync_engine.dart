@@ -289,7 +289,11 @@ class SyncEngine {
             // держался лишь на совпадении calendarId; при коллизии id календарей
             // между провайдерами этого мало — проверяем владельца явно, как в
             // update/delete/rsvp. Так O365 никогда не создаст чужое событие.
-            if (event != null && event.source.accountId == acc.id) {
+            // ВАЖНО: чужое задание именно ПРОПУСКАЕМ (continue) — упади мы вниз
+            // switch'а, removeOutbox стёр бы его, не отправив (см. тест
+            // cross_account_create_test).
+            if (event != null && event.source.accountId != acc.id) continue;
+            if (event != null) {
               final cals = await accounts.calendarsOf(acc.id);
               // СТРОГО: создаём только если целевой календарь принадлежит ЭТОМУ
               // аккаунту. Раньше был orElse → cals.first: при синке «не того»

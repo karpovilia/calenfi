@@ -7,6 +7,7 @@ import '../../../../domain/models/calendar_event.dart';
 import '../../../../domain/models/conference.dart';
 import '../../../../domain/models/enums.dart';
 import '../../../../domain/providers/calendar_provider.dart';
+import 'graph_recurrence.dart';
 import '../../../../domain/providers/provider_capabilities.dart';
 import '../../../../services/conference_parser.dart';
 import 'graph_token.dart';
@@ -271,6 +272,10 @@ class GraphProvider implements CalendarProvider {
       'start': t(e.startUtc),
       'end': t(e.endUtc),
       'isAllDay': e.allDay,
+      // Повторяющаяся серия (FR-E6): Graph не принимает RRULE-строку —
+      // конвертируем в его patternedRecurrence (только у мастера).
+      if (e.recurrenceRule != null && e.recurrenceId == null)
+        'recurrence': ?rruleToGraphRecurrence(e.recurrenceRule!, e.startUtc),
       if (e.location != null) 'location': {'displayName': e.location},
       if (body != null) 'body': {'contentType': 'text', 'content': body},
       if (e.attendees.isNotEmpty)

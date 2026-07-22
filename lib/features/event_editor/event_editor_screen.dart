@@ -12,6 +12,7 @@ import '../../domain/models/conference.dart';
 import '../../domain/models/enums.dart';
 import '../calendar/calendar_state.dart';
 import '../calendar/pending_edits.dart';
+import 'recurrence_editor.dart';
 
 /// Открытие редактора события как **диалога** (не на весь экран).
 class EventEditor {
@@ -86,6 +87,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   ConferenceType? _conference;
   late List<Attendee> _attendees;
 
+  /// Правило повторения (RRULE без префикса, FR-E6). null — не повторять.
+  String? _recurrenceRule;
+
   /// Контроллер поля ввода участника (из Autocomplete.fieldViewBuilder) —
   /// нужен, чтобы очистить строку после выбора из выпадающего списка.
   TextEditingController? _inviteeCtl;
@@ -111,6 +115,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     _showAs = e?.showAs ?? ShowAs.busy;
     _visibility = e?.visibility ?? EventVisibility.defaultVis;
     _conference = e?.conference?.type;
+    _recurrenceRule = e?.recurrenceRule;
     // Переговорка (ресурс) — отдельная категория; из общего списка исключаем.
     _room = TextEditingController(text: e?.room?.email ?? '');
     _attendees = List.of(e?.people ?? const []);
@@ -192,6 +197,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                     }
                   })),
               _dateTimeRow('Конец', _end, (d) => setState(() => _end = d)),
+              _recurrenceRow(),
               const Divider(height: 24),
               _calendarPicker(cals),
               _showAsRow(),
@@ -318,6 +324,29 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     return CircleAvatar(
         backgroundColor: Colors.transparent,
         child: Icon(icon, size: 14, color: color));
+  }
+
+  /// Повторение (FR-E6): диалог в стиле Outlook (см. recurrence_editor.dart).
+  /// У экземпляра серии правило меняется только у мастера — строка заблокирована.
+  Widget _recurrenceRow() {
+    final isInstance = widget.existing?.recurrenceId != null;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.repeat),
+      title: const Text('Повторять'),
+      subtitle: Text(isInstance
+          ? 'Экземпляр серии — правило у всей серии'
+          : describeRecurrence(_recurrenceRule)),
+      enabled: !isInstance,
+      onTap: isInstance
+          ? null
+          : () async {
+              final r = await showRecurrenceDialog(context,
+                  initial: _recurrenceRule, start: _start);
+              if (r == null) return; // отмена
+              setState(() => _recurrenceRule = r.isEmpty ? null : r);
+            },
+    );
   }
 
   Widget _showAsRow() => ListTile(
@@ -491,6 +520,8 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       location: _location.text.trim().isEmpty ? null : _location.text.trim(),
       description: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
       attendees: attendees,
+      recurrenceRule: _recurrenceRule,
+      recurrenceId: existing?.recurrenceId,
       myResponse: existing?.myResponse ?? ResponseStatus.organizer,
       showAs: _showAs,
       visibility: _visibility,

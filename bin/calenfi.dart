@@ -84,6 +84,12 @@ Future<void> main(List<String> argv) async {
         await _contacts(contacts);
       case 'contact-add':
         await _contactAdd(contacts, flags);
+      case 'secret-set':
+        // Положить секрет в хранилище (keyring/фолбэк): напр. ключи Zoom
+        // ZOOM_ACCOUNT_ID / ZOOM_CLIENT_ID / ZOOM_CLIENT_SECRET.
+        _require(flags, ['key', 'value']);
+        await SecretStore.instance.write(flags['key']!, flags['value']!);
+        _ok({'set': flags['key']});
       default:
         _fail('unknown command: $command');
     }
@@ -256,6 +262,9 @@ Future<void> _create(EventRepository events, AccountRepository accounts,
     endUtc: DateTime.parse(f['end']!).toUtc(),
     location: f['location'],
     description: f['description'],
+    // Повторяющаяся серия: --rrule "FREQ=WEEKLY;BYDAY=WE;UNTIL=20270731T235959Z"
+    recurrenceRule:
+        (f['rrule'] ?? '').isNotEmpty ? f['rrule']!.toUpperCase() : null,
     attendees: [
       ..._parseAttendees(f['attendees']),
       // Переговорка (--room email) — ресурс-участник, комната подтверждает бронь.
@@ -573,6 +582,7 @@ Calenfi Agent CLI — JSON-интерфейс к локальному кален
   freeslots --from ISO --to ISO --duration MIN [--day-start 10 --day-end 20]
   create    --title T --start ISO --end ISO [--calendar ID|--account EMAIL]
             [--location L --description D --attendees a@x,b@y --room room@x
+             --rrule "FREQ=WEEKLY;BYDAY=MO,WE" (повторение, RFC 5545)
              --conference meet|teams|zoom|telemost]
   update    --id ID [--title --start --end --location --description]
   delete    --id ID
@@ -582,6 +592,7 @@ Calenfi Agent CLI — JSON-интерфейс к локальному кален
   sync      [--account acc-<id>]                          синхронизация (все или один аккаунт)
   contacts                                               список контактов
   contact-add --name N --email E                          добавить контакт
+  secret-set  --key K --value V                           положить секрет (напр. ключи Zoom)
 
 Время — ISO 8601 (например 2026-06-12T15:00:00). Вывод — JSON.
 Путь к БД можно переопределить через --db или переменную CALENFI_DB.
