@@ -1,7 +1,7 @@
 # Calenfi Agent API (CLI)
 
 JSON-интерфейс над локальным календарём Calenfi для LLM-агентов. **Только Linux/Arch.**
-Работает с той же локальной БД, что и приложение (`~/.local/share/io.github.karpovilia.calenfi/calenfi.sqlite`).
+Работает с той же локальной БД, что и приложение (`~/.local/share/money.click2.calenfi.calenfi/calenfi.sqlite`).
 
 ## Запуск
 
@@ -40,7 +40,7 @@ dart run calenfi:calenfi <command> [--flags]   # из корня проекта
 
 | Команда | Флаги |
 |---|---|
-| `create` | `--title T --start ISO --end ISO` + опц. `--calendar ID` \| `--account EMAIL`, `--location`, `--description`, `--attendees a@x,b@y`, `--conference meet\|teams\|zoom\|telemost` |
+| `create` | `--title T --start ISO --end ISO` + опц. `--calendar ID` \| `--account EMAIL`, `--location`, `--description`, `--attendees a@x,b@y`, `--conference meet\|teams\|zoom\|telemost`, `--rrule "FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20270101T000000Z"` (повторение, RFC 5545) |
 | `update` | `--id ID` + любые из `--title --start --end --location --description` |
 | `delete` | `--id ID` |
 | `rsvp` | `--id ID --response accepted\|declined\|tentative` |
@@ -54,6 +54,7 @@ dart run calenfi:calenfi <command> [--flags]   # из корня проекта
 | `sync` | pull из источников + push Outbox через тот же движок, что и приложение | `[--account acc-<id>]` — все аккаунты или один |
 | `contacts` | список контактов | — |
 | `contact-add` | добавить контакт | `--name N --email E` |
+| `secret-set` | положить секрет в хранилище (напр. ключи Zoom) | `--key ZOOM_CLIENT_ID --value …` |
 
 Полный проход `sync` занимает ~70 c (медленнее всего EWS/HSE). Приложение для этого запускать не нужно.
 
@@ -67,6 +68,10 @@ tools/calenfi agenda --from 2026-06-12T00:00:00 --to 2026-06-19T00:00:00
 tools/calenfi freeslots --from 2026-06-13T00:00:00 --to 2026-06-13T23:59:00 --duration 60
 
 # Поставь встречу с боссом
+# Еженедельная серия (зал по средам до августа 2027)
+tools/calenfi create --title "Зал" --start 2026-07-29T22:00:00 --end 2026-07-30T00:00:00 \
+  --rrule "FREQ=WEEKLY;BYDAY=WE;UNTIL=20270731T235959Z"
+
 tools/calenfi create --title "1:1 with boss" \
   --start 2026-06-13T15:00:00 --end 2026-06-13T15:30:00 \
   --account me@gmail.com --attendees boss@example.com --conference meet
