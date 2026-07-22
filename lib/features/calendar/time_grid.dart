@@ -1,6 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/gestures.dart' show PointerDeviceKind;
+import 'package:flutter/gestures.dart'
+    show
+        PointerDeviceKind,
+        PanGestureRecognizer,
+        LongPressGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,15 +26,13 @@ const int kSnapMinutes = 15; // квантизация (FR-E5)
 const Color kHourLineColor = Color(0x24FFFFFF); // ~14% белого
 const Color kColumnLineColor = Color(0x33FFFFFF); // ~20% белого
 
-/// Устройства «десктопной» протяжки (create-drag и ресайз): мышь, трекпад
-/// MacBook (жест приходит как [PointerDeviceKind.trackpad]), стилус и unknown.
-/// Тач сюда НЕ входит — на тач используется long-press, чтобы не спорить со
-/// скроллом.
-const Set<PointerDeviceKind> _kDesktopDrag = {
+/// Ресайз кромок события: ТОЛЬКО мышь/стилус. Трекпад намеренно исключён —
+/// двухпальцевый скролл на macOS приходит как vertical-drag и, начавшись над
+/// узкой (8px) кромкой, тянул размер вместо прокрутки. Трекпадом длительность
+/// меняется через редактор события.
+const Set<PointerDeviceKind> _kEdgeResize = {
   PointerDeviceKind.mouse,
-  PointerDeviceKind.trackpad,
   PointerDeviceKind.stylus,
-  PointerDeviceKind.unknown,
 };
 
 double _snapPxToMinutes(double px) {
@@ -243,18 +245,35 @@ class _TimeGridState extends ConsumerState<TimeGrid> {
             onLongPressEnd: (_) => _commitDraw(colW),
             onLongPressCancel: () => setState(() => _draw = null),
           ),
-          // Десктоп: click-drag по сетке → выделение диапазона. Тянуть должно
-          // работать и мышью, и трекпадом MacBook (жест приходит как trackpad),
-          // и стилусом — иначе протяжка не набирается и создаётся дефолтные 30 мин.
+          // Десктоп: click-drag по сетке → выделение диапазона. ТОЛЬКО мышь и
+          // стилус: на трекпаде MacBook двухпальцевый скролл приходит как pan и
+          // раньше рисовал событие вместо прокрутки. Трекпадом создаём тапом
+          // (дефолтные 30 мин) либо long-press-протяжкой (ветка touch выше).
           GestureDetector(
             behavior: HitTestBehavior.translucent,
-            supportedDevices: _kDesktopDrag,
+            supportedDevices: const {
+              PointerDeviceKind.mouse,
+              PointerDeviceKind.stylus,
+            },
             onPanStart: (d) =>
                 setState(() => _draw = _DrawSelection(d.localPosition)),
             onPanUpdate: (d) =>
                 setState(() => _draw?.current = d.localPosition),
             onPanEnd: (_) => _commitDraw(colW),
             onPanCancel: () => setState(() => _draw = null),
+          ),
+          // Трекпад/тач: long-press + протяжка по пустому месту → выделение
+          // диапазона (не конфликтует со скроллом). Мгновенный скролл его не
+          // запускает. Ветка выше (touch) остаётся для телефонов.
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            supportedDevices: const {PointerDeviceKind.trackpad},
+            onLongPressStart: (d) =>
+                setState(() => _draw = _DrawSelection(d.localPosition)),
+            onLongPressMoveUpdate: (d) =>
+                setState(() => _draw?.current = d.localPosition),
+            onLongPressEnd: (_) => _commitDraw(colW),
+            onLongPressCancel: () => setState(() => _draw = null),
           ),
         ],
       ),
@@ -644,7 +663,7 @@ class _TimeGridState extends ConsumerState<TimeGrid> {
 ///    события поверх делает слой создания над сеткой.
 ///  • [editMode]=true («откреплено») — перенос простым перетаскиванием тела и
 ///    ресайз нижней кромкой (мышь). Тап по-прежнему открывает детали.
-class _DraggableEvent extends StatelessWidget {
+class _DraggableEvent extends StatefulWidget {
   const _DraggableEvent({
     required this.merged,
     required this.color,
@@ -672,6 +691,19 @@ class _DraggableEvent extends StatelessWidget {
   final VoidCallback onCancel;
 
   @override
+  State<_DraggableEvent> createState() => _DraggableEventState();
+}
+
+class _DraggableEventState extends State<_DraggableEvent> {
+  /// Накопленное смещение long-press-drag: он даёт offsetFromOrigin
+  /// (кумулятивный от точки нажатия), а onMoveDelta ждёт инкремент.
+  Offset _lastOffset = Offset.zero;
+
+  MergedEvent get merged => widget.merged;
+  Color get color => widget.color;
+  bool get editMode => widget.editMode;
+
+  @override
   Widget build(BuildContext context) {
     // Закреплено: блок НЕ ловит указатель — и тапом (детали), и протяжкой
     // (создание поверх) целиком рулит слой создания над сеткой. Иначе InkWell
@@ -682,15 +714,56 @@ class _DraggableEvent extends StatelessWidget {
 
     return Stack(
       children: [
-        // Перенос — перетаскиванием всего тела. Тап (InkWell внутри EventBlock)
-        // по-прежнему открывает детали: pan выигрывает арену только при движении.
+        // Перенос тела события — по-разному для мыши и трекпада:
+        //  • Мышь/стилус — обычный click-drag (мгновенно), как привыкли на
+        //    десктопе. Колёсико мыши даёт scroll-события, а НЕ pan, поэтому
+        //    прокрутка мышью встречу не тянет.
+        //  • Трекпад — long-press-drag (подержать ~0.5с, потом тащить): иначе
+        //    двухпальцевый скролл macOS (он приходит как pan) случайно таскал
+        //    встречи. Скролл мгновенный — long-press не срабатывает, прокрутка
+        //    штатно уходит в ScrollView.
+        // Тап (InkWell внутри EventBlock) в обоих случаях открывает детали.
+        // Оба распознавателя на ОДНОМ RawGestureDetector (без вложенности —
+        // из-за неё мышью было тяжело зацепить событие): мышиный pan работает
+        // так же отзывчиво, как раньше.
         Positioned.fill(
-          child: GestureDetector(
+          child: RawGestureDetector(
             behavior: HitTestBehavior.opaque,
-            onPanStart: (_) => onMoveStart(),
-            onPanUpdate: (d) => onMoveDelta(d.delta),
-            onPanEnd: (_) => onEnd(),
-            onPanCancel: onCancel,
+            gestures: {
+              PanGestureRecognizer:
+                  GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+                () => PanGestureRecognizer(
+                  supportedDevices: const {
+                    PointerDeviceKind.mouse,
+                    PointerDeviceKind.stylus,
+                  },
+                ),
+                (r) {
+                  r.onStart = (_) => widget.onMoveStart();
+                  r.onUpdate = (d) => widget.onMoveDelta(d.delta);
+                  r.onEnd = (_) => widget.onEnd();
+                  r.onCancel = widget.onCancel;
+                },
+              ),
+              LongPressGestureRecognizer: GestureRecognizerFactoryWithHandlers<
+                  LongPressGestureRecognizer>(
+                () => LongPressGestureRecognizer(
+                  supportedDevices: const {PointerDeviceKind.trackpad},
+                ),
+                (r) {
+                  r.onLongPressStart = (_) {
+                    _lastOffset = Offset.zero;
+                    widget.onMoveStart();
+                  };
+                  r.onLongPressMoveUpdate = (d) {
+                    widget.onMoveDelta(d.offsetFromOrigin - _lastOffset);
+                    _lastOffset = d.offsetFromOrigin;
+                  };
+                  r.onLongPressEnd = (_) => widget.onEnd();
+                  r.onLongPressCancel = widget.onCancel;
+                },
+              ),
+            },
             child: EventBlock(event: merged, color: color),
           ),
         ),
@@ -702,10 +775,10 @@ class _DraggableEvent extends StatelessWidget {
           height: 8,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            supportedDevices: _kDesktopDrag,
-            onVerticalDragStart: (_) => onResizeTopStart(),
-            onVerticalDragUpdate: (d) => onResizeTopUpdate(d.delta.dy),
-            onVerticalDragEnd: (_) => onEnd(),
+            supportedDevices: _kEdgeResize,
+            onVerticalDragStart: (_) => widget.onResizeTopStart(),
+            onVerticalDragUpdate: (d) => widget.onResizeTopUpdate(d.delta.dy),
+            onVerticalDragEnd: (_) => widget.onEnd(),
             child: MouseRegion(
               cursor: SystemMouseCursors.resizeUpDown,
               child: Container(
@@ -730,10 +803,10 @@ class _DraggableEvent extends StatelessWidget {
           height: 8,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            supportedDevices: _kDesktopDrag,
-            onVerticalDragStart: (_) => onResizeStart(),
-            onVerticalDragUpdate: (d) => onResizeUpdate(d.delta.dy),
-            onVerticalDragEnd: (_) => onEnd(),
+            supportedDevices: _kEdgeResize,
+            onVerticalDragStart: (_) => widget.onResizeStart(),
+            onVerticalDragUpdate: (d) => widget.onResizeUpdate(d.delta.dy),
+            onVerticalDragEnd: (_) => widget.onEnd(),
             child: MouseRegion(
               cursor: SystemMouseCursors.resizeUpDown,
               child: Container(

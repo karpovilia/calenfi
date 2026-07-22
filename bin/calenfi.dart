@@ -383,8 +383,21 @@ Future<void> _pushOutbox(EventRepository events, AccountRepository accounts,
       switch (item.op) {
         case 'create':
           final cals = await accounts.calendarsOf(acc.id);
-          final cal = cals.firstWhere((c) => c.id == e.calendarId,
-              orElse: () => cals.first);
+          // СТРОГО целевой календарь этого же аккаунта. НИКОГДА не подставляем
+          // cals.first: иначе событие с чужим calendarId создаётся не там
+          // (в т.ч. в чужом аккаунте) — порча данных (см. sync_engine guard).
+          Calendar? cal;
+          for (final c in cals) {
+            if (c.id == e.calendarId) {
+              cal = c;
+              break;
+            }
+          }
+          if (cal == null) {
+            stderr.writeln('skip create: календарь ${e.calendarId} '
+                'не принадлежит ${acc.id}');
+            continue;
+          }
           var ev = e;
           if (ev.conference != null && !ev.conference!.isReady) {
             ev = await provisioner.ensure(ev,

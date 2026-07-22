@@ -83,11 +83,23 @@ class PendingEditsNotifier extends StateNotifier<Map<String, PendingEdit>> {
     }
   }
 
-  /// Отправить сейчас ВСЕ ожидающие изменения (кнопка «в облако» сверху).
+  /// Отправить сейчас ВСЕ ожидающие изменения (кнопка «в облако» / синк сверху).
+  ///
+  /// Порядок важен: СНАЧАЛА кладём в Outbox ВСЕ правки, ПОТОМ один общий синк.
+  /// Раньше делали per-event (`applyNow` → enqueue + syncAccountById на каждое):
+  /// синк первого события успевал прочитать снапшот Outbox без остальных (и/или
+  /// присоединялся к уже летящему фоновому синку) → уходило только первое
+  /// событие, второе «висело»/сбрасывалось. Теперь к моменту синка в Outbox
+  /// лежат все правки, и один проход пушит их разом.
   Future<void> applyAll() async {
-    for (final id in state.keys.toList()) {
-      await applyNow(id);
+    final ids = state.keys.toList();
+    if (ids.isEmpty) return;
+    for (final id in ids) {
+      final op = state[id]?.op ?? 'update';
+      _clear(id); // снять таймер и убрать из ожидающих
+      await _events.enqueue(op, id);
     }
+    await _sync.syncAll();
   }
 
   /// Отменить ВСЕ ожидающие изменения (вернуть всё из облака).

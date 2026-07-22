@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/calendar/calendar_state.dart';
+import '../features/calendar/pending_edits.dart';
 import '../features/event_editor/event_editor_screen.dart';
 import 'providers.dart';
 
@@ -99,7 +100,10 @@ class CalenfiKeymap extends ConsumerWidget {
             return null;
           }),
           SyncIntent: CallbackAction<SyncIntent>(onInvoke: (_) {
-            ref.read(syncTriggerProvider)();
+            // Сначала флашим отложенные правки в Outbox, потом синк (иначе
+            // уходит только первое перенесённое событие). См. _SyncStatus.
+            ref.read(pendingEditsProvider.notifier).applyAll().then(
+                (_) => ref.read(syncTriggerProvider)());
             return null;
           }),
           ToggleCancelledIntent:

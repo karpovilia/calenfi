@@ -285,7 +285,11 @@ class SyncEngine {
         }
         switch (item.op) {
           case 'create':
-            if (event != null) {
+            // Defense-in-depth: событие пушит только СВОЙ аккаунт. Раньше guard
+            // держался лишь на совпадении calendarId; при коллизии id календарей
+            // между провайдерами этого мало — проверяем владельца явно, как в
+            // update/delete/rsvp. Так O365 никогда не создаст чужое событие.
+            if (event != null && event.source.accountId == acc.id) {
               final cals = await accounts.calendarsOf(acc.id);
               // СТРОГО: создаём только если целевой календарь принадлежит ЭТОМУ
               // аккаунту. Раньше был orElse → cals.first: при синке «не того»

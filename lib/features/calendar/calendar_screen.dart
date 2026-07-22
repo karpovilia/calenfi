@@ -576,6 +576,10 @@ class _SyncStatus extends ConsumerWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: () async {
+        // Сперва отправить ВСЕ отложенные правки (перенос/ресайз ждут таймера
+        // commitDelay) в Outbox — иначе синк пушил лишь те, чей таймер уже
+        // истёк (обычно первое перенесённое событие), а остальные «висели».
+        await ref.read(pendingEditsProvider.notifier).applyAll();
         await ref.read(syncTriggerProvider)();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
