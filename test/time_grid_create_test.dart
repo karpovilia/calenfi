@@ -75,6 +75,11 @@ void main() {
     final obs = _Rec();
     await tester.pumpWidget(harness(obs));
     await tester.pump();
+    // Начальный скролл сетки зависит от текущего ЧАСА (initialOffset от
+    // DateTime.now()) — на CI в позднее UTC-время событие 10:00 уезжает за
+    // вьюпорт и тап мимо. Прокручиваем к нему явно.
+    await tester.ensureVisible(find.text('Существующая'));
+    await tester.pump();
     final onEvent = tester.getCenter(find.text('Существующая'));
     await dragMouse(tester, onEvent);
     tester.takeException();
@@ -85,6 +90,9 @@ void main() {
   testWidgets('tap on event opens details (pinned)', (tester) async {
     final obs = _Rec();
     await tester.pumpWidget(harness(obs));
+    await tester.pump();
+    // См. комментарий выше: событие может быть за вьюпортом в позднее UTC-время.
+    await tester.ensureVisible(find.text('Существующая'));
     await tester.pump();
     await tester.tapAt(tester.getCenter(find.text('Существующая')),
         kind: PointerDeviceKind.mouse);
