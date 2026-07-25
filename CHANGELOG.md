@@ -6,10 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-07-25
+
 ### Added
 - **Yandex Telemost** video conferences: create a real meeting link via the
   Telemost API. Connect once in Accounts → Add → Telemost (Yandex OAuth); needs
   a Yandex app with "Telemost API" access.
+
+### Changed
+- **Add-account is now a full screen**, not a cramped bottom sheet. Password
+  providers (Yandex / Exchange) get a proper form screen with a busy indicator,
+  and the account is saved immediately while the first sync runs in the
+  background — so connecting no longer looks like "nothing happened".
 
 ## [0.2.0] — 2026-07-25
 
@@ -87,7 +95,8 @@ First public release.
   (libsecret / Keychain / DPAPI), with an encrypted-at-rest file fallback and
   `flutter_secure_storage` on mobile.
 
-[Unreleased]: https://github.com/karpovilia/calenfi/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/karpovilia/calenfi/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/karpovilia/calenfi/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/karpovilia/calenfi/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/karpovilia/calenfi/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/karpovilia/calenfi/releases/tag/v0.1.0

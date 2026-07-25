@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -248,12 +250,15 @@ class ConnectAccountService {
     await _persist(_account(provider, email, displayName));
   }
 
-  /// Сохранить аккаунт в БД + accounts.json, пересоздать провайдеры и синкнуть.
+  /// Сохранить аккаунт в БД + accounts.json, пересоздать провайдеры и запустить
+  /// синк В ФОНЕ. Синк не ждём: аккаунт появляется в списке сразу, а результат
+  /// (события / ошибка авторизации) прилетает статусом — иначе форма «висела»
+  /// на сетевом синке и выглядела как «ничего не происходит».
   Future<void> _persist(Account acc) async {
     await ref.read(accountRepositoryProvider).upsertAccount(acc);
     await addConfiguredAccount(acc);
     ref.invalidate(providerRegistryProvider);
-    await ref.read(syncEngineProvider).syncAccount(acc);
+    unawaited(ref.read(syncEngineProvider).syncAccount(acc));
   }
 }
 

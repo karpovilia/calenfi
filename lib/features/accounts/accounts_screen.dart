@@ -38,7 +38,7 @@ class AccountsScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.all(16),
               child: OutlinedButton.icon(
-                onPressed: () => showAddAccountSheet(context),
+                onPressed: () => openAddAccount(context),
                 icon: const Icon(Icons.add),
                 label: const Text('Добавить учётную запись'),
               ),
