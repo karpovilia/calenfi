@@ -191,4 +191,11 @@ class EventRepository {
   Future<void> bumpRetry(int id, int retry) =>
       (_db.update(_db.outbox)..where((o) => o.id.equals(id)))
           .write(OutboxCompanion(retryCount: Value(retry)));
+
+  /// Сбрасывает счётчик попыток у ВСЕХ заданий Outbox — вызывается при РУЧНОМ
+  /// синке, чтобы задания, «сгоревшие» из-за временной проблемы (протухший
+  /// пароль и т.п.), получили новый шанс после её устранения. Фоновый синк это
+  /// НЕ делает — иначе он бы вечно долбил заведомо битые задания.
+  Future<void> resetOutboxRetries() =>
+      _db.update(_db.outbox).write(const OutboxCompanion(retryCount: Value(0)));
 }

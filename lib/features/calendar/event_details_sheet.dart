@@ -773,15 +773,16 @@ class _IdRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(children: [
           Text('$label: ',
-              style: const TextStyle(color: Colors.grey, fontSize: 11)),
+              style: const TextStyle(color: Colors.grey, fontSize: 13)),
           Expanded(
             child: Text(value,
-                maxLines: 1,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                    color: Colors.grey, fontSize: 11, fontFamily: 'monospace')),
+                    color: Colors.grey, fontSize: 13, fontFamily: 'monospace')),
           ),
-          const Icon(Icons.copy, size: 13, color: Colors.grey),
+          const SizedBox(width: 6),
+          const Icon(Icons.copy, size: 15, color: Colors.grey),
         ]),
       ),
     );

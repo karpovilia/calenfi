@@ -228,12 +228,17 @@ ${_attendeesXml(attendees)}
   @override
   Future<void> deleteEvent(Account a, CalendarEvent e, RecurrenceScope s) async {
     final id = e.source.providerEventId;
-    if (id == null) throw StateError('EWS delete: нет ItemId');
+    // Нет серверного ItemId (событие ещё не доехало до сервера) — удалять на
+    // сервере нечего, считаем удалённым.
+    if (id == null) return;
     final body = '''${_envelopeOpen('DeleteItem')}
 <m:DeleteItem DeleteType="MoveToDeletedItems" SendMeetingCancellations="SendToNone">
 <m:ItemIds><t:ItemId Id="${_attr(id)}"${e.source.etag == null ? '' : ' ChangeKey="${_attr(e.source.etag!)}"'}/></m:ItemIds>
 </m:DeleteItem>${_envelopeClose()}''';
-    _checked(await _soap(_action('DeleteItem'), body));
+    // ErrorItemNotFound / ErrorCannotDeleteObject = событие уже удалено на
+    // сервере → цель достигнута, НЕ ошибка (иначе задание застревает навсегда).
+    _checked(await _soap(_action('DeleteItem'), body),
+        okCodes: const {'ErrorItemNotFound', 'ErrorCannotDeleteObject'});
   }
 
   @override
@@ -284,13 +289,14 @@ ${_attendeesXml(attendees)}
     return '<t:RequiredAttendees>$rows</t:RequiredAttendees>';
   }
 
-  /// Разбирает ответ EWS и БРОСАЕТ, если ResponseClass="Error" — иначе запись
-  /// молча «терялась» бы (см. слой синка: ошибка станет видимой пользователю).
-  XmlDocument _checked(String xml) {
+  /// Разбирает ответ EWS и БРОСАЕТ, если ResponseCode != NoError (и не входит в
+  /// [okCodes]) — иначе запись молча «терялась» бы (слой синка покажет ошибку).
+  /// [okCodes] — коды, которые считаем успехом (напр. «уже удалено» для delete).
+  XmlDocument _checked(String xml, {Set<String> okCodes = const {}}) {
     final doc = XmlDocument.parse(xml);
     for (final m in doc.findAllElements('ResponseCode', namespace: _mns)) {
       final code = m.innerText;
-      if (code != 'NoError') {
+      if (code != 'NoError' && !okCodes.contains(code)) {
         final msg = m.parent
                 ?.findElements('MessageText', namespace: _mns)
                 .firstOrNull

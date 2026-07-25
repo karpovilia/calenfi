@@ -46,11 +46,16 @@ class CredentialSource {
   String? ewsUrl(String email) => _nonEmpty(_values['${_key(email)}_EWS_URL']);
   String? ewsUser(String email) => _nonEmpty(_values['${_key(email)}_EWS_USER']);
 
-  /// Zoom Server-to-Server OAuth (создание видеовстреч). Глобальные ключи —
-  /// один Zoom-app на всё приложение (не per-email).
+  /// Zoom. Поддержаны два режима:
+  ///  • Server-to-Server OAuth — [zoomAccountId] + [zoomClientId] +
+  ///    [zoomClientSecret] (Calenfi создаёт встречи от имени аккаунта, без
+  ///    браузерного входа);
+  ///  • User-managed OAuth — то же client_id/secret + сохранённый после входа
+  ///    в браузере [zoomUserToken] (встречи от имени пользователя).
   String? get zoomAccountId => _nonEmpty(_values['ZOOM_ACCOUNT_ID']);
   String? get zoomClientId => _nonEmpty(_values['ZOOM_CLIENT_ID']);
   String? get zoomClientSecret => _nonEmpty(_values['ZOOM_CLIENT_SECRET']);
+  String? get zoomUserToken => _nonEmpty(_values['ZOOM_USER_TOKEN']);
 
   /// OAuth-клиент Google (для in-app подключения аккаунта). Тип «installed»,
   /// client_secret не конфиденциален, но нужен при обмене кода. Задаётся ключами

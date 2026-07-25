@@ -8,8 +8,11 @@ import '../../data/local/db/database.dart' show ContactRow;
 import '../../domain/models/attendee.dart';
 import '../../domain/models/calendar.dart';
 import '../../domain/models/calendar_event.dart';
+import '../../domain/models/account.dart';
 import '../../domain/models/conference.dart';
 import '../../domain/models/enums.dart';
+import '../../data/secure/credential_source.dart';
+import '../accounts/add_account_sheet.dart';
 import '../calendar/calendar_state.dart';
 import '../calendar/pending_edits.dart';
 import 'recurrence_editor.dart';
@@ -76,7 +79,6 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   late final TextEditingController _title;
   late final TextEditingController _location;
   late final TextEditingController _notes;
-  late final TextEditingController _room;
 
   late bool _allDay;
   late DateTime _start;
@@ -85,6 +87,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   late ShowAs _showAs;
   late EventVisibility _visibility;
   ConferenceType? _conference;
+  String? _conferenceAccountId; // УЗ-хост встречи (Teams/Meet)
   late List<Attendee> _attendees;
 
   /// Правило повторения (RRULE без префикса, FR-E6). null — не повторять.
@@ -115,9 +118,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     _showAs = e?.showAs ?? ShowAs.busy;
     _visibility = e?.visibility ?? EventVisibility.defaultVis;
     _conference = e?.conference?.type;
+    _conferenceAccountId = e?.conference?.accountId;
     _recurrenceRule = e?.recurrenceRule;
     // Переговорка (ресурс) — отдельная категория; из общего списка исключаем.
-    _room = TextEditingController(text: e?.room?.email ?? '');
     _attendees = List.of(e?.people ?? const []);
   }
 
@@ -126,7 +129,6 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     _title.dispose();
     _location.dispose();
     _notes.dispose();
-    _room.dispose();
     super.dispose();
   }
 
@@ -203,7 +205,6 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
               _showAsRow(),
               _visibilityRow(),
               _conferenceRow(),
-              _roomRow(),
               const Divider(height: 24),
               _inviteesSection(),
               const SizedBox(height: 8),
@@ -299,19 +300,32 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
 
   /// Контакты справочника, подходящие под запрос (по имени или почте).
   /// Общий источник для подсказок Autocomplete и для выбора по Enter.
+  /// Сортировка: по умолчанию по ЧАСТОТЕ использования (useCount ↓), при равной
+  /// частоте — по алфавиту (имя ↑).
   Iterable<ContactRow> _matchingContacts(String value) {
     final q = value.trim().toLowerCase();
     if (q.isEmpty) return const <ContactRow>[];
     final contacts = ref.read(contactsStreamProvider).value ?? const [];
-    return contacts.where((c) =>
-        c.displayName.toLowerCase().contains(q) ||
-        c.email.toLowerCase().contains(q));
+    final matched = contacts
+        .where((c) =>
+            c.displayName.toLowerCase().contains(q) ||
+            c.email.toLowerCase().contains(q))
+        .toList()
+      ..sort((a, b) {
+        final byUse = b.useCount.compareTo(a.useCount);
+        return byUse != 0
+            ? byUse
+            : a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+      });
+    return matched;
   }
 
   void _addInviteeEmail(String email, String? name) {
     if (email.isEmpty || !email.contains('@')) return;
     if (_attendees.any((a) => a.email == email)) return;
     setState(() => _attendees.add(Attendee(email: email, displayName: name)));
+    // Отметить частоту — в следующий раз этот контакт будет выше в подсказках.
+    ref.read(contactRepositoryProvider).bumpUse(email: email, displayName: name);
   }
 
   Widget? _responseAvatar(ResponseStatus r) {
@@ -378,40 +392,75 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         ),
       );
 
-  Widget _conferenceRow() => ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.videocam_outlined),
-        title: const Text('Видеовстреча'),
-        trailing: DropdownButton<ConferenceType?>(
-          value: _conference,
-          hint: const Text('Нет'),
-          onChanged: (v) => setState(() => _conference = v),
-          items: const [
-            DropdownMenuItem(value: null, child: Text('Нет')),
-            DropdownMenuItem(value: ConferenceType.meet, child: Text('Google Meet')),
-            DropdownMenuItem(value: ConferenceType.teams, child: Text('Teams')),
-            DropdownMenuItem(value: ConferenceType.zoom, child: Text('Zoom')),
-            DropdownMenuItem(value: ConferenceType.telemost, child: Text('Telemost')),
-          ],
-        ),
-      );
+  /// Опции видеовстречи: каждая привязанная УЗ, умеющая хостить встречу, +
+  /// сервисы по токену (Zoom/Telemost). Показываем АДРЕС УЗ (крупно) и сервис
+  /// рядом — встреча создаётся от этой УЗ.
+  List<_ConfOption> _confOptions() {
+    final accts = ref.watch(accountsStreamProvider).value ?? const <Account>[];
+    final creds = CredentialSource.load();
+    final out = <_ConfOption>[];
+    for (final a in accts) {
+      if (a.provider == ProviderType.graph) {
+        out.add(_ConfOption(ConferenceType.teams, a.id, a.email, 'Teams'));
+      } else if (a.provider == ProviderType.google) {
+        out.add(_ConfOption(ConferenceType.meet, a.id, a.email, 'Meet'));
+      }
+    }
+    if (creds.zoomClientId != null) {
+      out.add(_ConfOption(ConferenceType.zoom, null, 'Zoom', 'Zoom'));
+    }
+    if (creds.telemostToken != null) {
+      out.add(_ConfOption(ConferenceType.telemost, null, 'Telemost', 'Telemost'));
+    }
+    return out;
+  }
 
-  /// Переговорка — отдельная категория (email ресурс-комнаты). Сосуществует с
-  /// видеовстречей; при создании уходит resource-участником, комната сама
-  /// подтверждает бронь.
-  Widget _roomRow() => ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.meeting_room_outlined),
-        title: TextField(
-          controller: _room,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'Переговорка (email комнаты)',
-            hintText: 'room@…',
-            border: InputBorder.none,
-          ),
+  Widget _conferenceRow() {
+    final opts = _confOptions();
+    final selectedKey = _conference == null
+        ? null
+        : '${_conference!.name}|${_conferenceAccountId ?? ''}';
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.videocam_outlined),
+      title: const Text('Видеовстреча'),
+      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+        DropdownButton<String?>(
+          value: selectedKey,
+          hint: const Text('Нет'),
+          items: [
+            const DropdownMenuItem(value: null, child: Text('Нет')),
+            for (final o in opts)
+              DropdownMenuItem(
+                value: o.key,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(o.account),
+                  const SizedBox(width: 6),
+                  Text('· ${o.service}',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                ]),
+              ),
+          ],
+          onChanged: (key) => setState(() {
+            if (key == null) {
+              _conference = null;
+              _conferenceAccountId = null;
+            } else {
+              final o = opts.firstWhere((x) => x.key == key);
+              _conference = o.type;
+              _conferenceAccountId = o.accountId;
+            }
+          }),
         ),
-      );
+        // (+) — подключить новый конференц-аккаунт
+        IconButton(
+          tooltip: 'Подключить аккаунт',
+          icon: const Icon(Icons.add_circle_outline, size: 20),
+          onPressed: () => openAddAccount(context),
+        ),
+      ]),
+    );
+  }
 
   Widget _calendarPicker(List<Calendar> cals) => ListTile(
         contentPadding: EdgeInsets.zero,
@@ -495,19 +544,15 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     Conference? conf = existing?.conference;
     if (_conference == null) {
       conf = null;
-    } else if (conf?.type != _conference) {
+    } else if (conf?.type != _conference ||
+        conf?.accountId != _conferenceAccountId) {
       // «Ожидающая» — реальную встречу заведёт ConferenceProvisioner при пуше
-      // Outbox (сходит в нужную УЗ: Teams/Meet/Zoom/Telemost).
-      conf = Conference.pending(_conference!);
+      // Outbox от выбранной УЗ (_conferenceAccountId): Teams/Meet/Zoom/Telemost.
+      conf = Conference.pending(_conference!, accountId: _conferenceAccountId);
     }
 
     // Переговорка (если задана) — ресурс-участник, добавляем к людям.
-    final roomEmail = _room.text.trim();
-    final attendees = [
-      ..._attendees,
-      if (roomEmail.isNotEmpty)
-        Attendee(email: roomEmail, isResource: true),
-    ];
+    final attendees = List.of(_attendees);
 
     final event = CalendarEvent(
       id: existing?.id ?? '',
@@ -548,4 +593,15 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     if (mounted) Navigator.pop(context);
   }
 
+}
+
+/// Опция поля «Видеовстреча»: сервис + УЗ-хост (для Teams/Meet) или сам сервис
+/// (Zoom/Telemost). [account] — что показываем крупно (адрес УЗ или имя сервиса).
+class _ConfOption {
+  const _ConfOption(this.type, this.accountId, this.account, this.service);
+  final ConferenceType type;
+  final String? accountId;
+  final String account;
+  final String service;
+  String get key => '${type.name}|${accountId ?? ''}';
 }

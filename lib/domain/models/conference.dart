@@ -7,13 +7,16 @@ class Conference {
     required this.joinUrl,
     this.meetingId,
     this.password,
+    this.accountId,
   });
 
   /// «Ожидающая» конференция: тип выбран, но реальная встреча ещё не заведена.
-  /// Провижинер (при пуше Outbox) либо заведёт её нужной УЗ и подставит
-  /// реальный [joinUrl], либо (тот же аккаунт умеет нативно) оставит пустым —
-  /// тогда встречу создаст сам провайдер календаря (Teams↔O365, Meet↔Google).
-  const Conference.pending(this.type)
+  /// [accountId] — УЗ, от имени которой создать встречу (её выбирает пользователь
+  /// в поле «Видеовстреча»). Провижинер (при пуше Outbox) либо заведёт её этой
+  /// УЗ и подставит реальный [joinUrl], либо (та же УЗ умеет нативно) оставит
+  /// пустым — тогда встречу создаст сам провайдер календаря (Teams↔O365,
+  /// Meet↔Google).
+  const Conference.pending(this.type, {this.accountId})
       : joinUrl = '',
         meetingId = null,
         password = null;
@@ -22,6 +25,9 @@ class Conference {
   final String joinUrl;
   final String? meetingId;
   final String? password;
+
+  /// УЗ-хост встречи (Graph→Teams, Google→Meet). null → выбрать первую подходящую.
+  final String? accountId;
 
   /// Реальная (уже заведённая) конференция — есть ссылка. Пустой [joinUrl]
   /// означает «ожидает провижининга / нативная».

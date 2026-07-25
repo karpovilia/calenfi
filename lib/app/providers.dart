@@ -50,9 +50,12 @@ final contactsStreamProvider = StreamProvider<List<ContactRow>>((ref) {
   return ref.watch(contactRepositoryProvider).watchAll();
 });
 
-/// Колбэк ручной синхронизации (FR-S3).
+/// Колбэк ручной синхронизации (FR-S3). Ручной синк СБРАСЫВАЕТ счётчики попыток
+/// Outbox — задания, «сгоревшие» из-за временной проблемы (протухший пароль),
+/// получают новый шанс после её починки. Фоновый синк ретраи не сбрасывает.
 final syncTriggerProvider = Provider<Future<void> Function()>((ref) {
   return () async {
+    await ref.read(eventRepositoryProvider).resetOutboxRetries();
     await ref.read(syncEngineProvider).syncAll();
   };
 });

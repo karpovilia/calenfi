@@ -67,6 +67,7 @@ class ConferenceProvisioner {
     if (conf == null || conf.isReady) return e; // нечего заводить / уже готова
     final resolved = await resolve(
       conf.type,
+      accountId: conf.accountId,
       target: target,
       allAccounts: allAccounts,
       start: e.startUtc,
@@ -80,22 +81,30 @@ class ConferenceProvisioner {
   }
 
   /// Готовит конференцию [type] для события в календаре [target].
+  /// [accountId] — УЗ-хост встречи, выбранная пользователем (Teams/Meet). Если
+  /// совпадает с УЗ календаря — заводим нативно; иначе кросс-аккаунт по её токену.
   Future<Conference> resolve(
     ConferenceType type, {
+    String? accountId,
     required Account? target,
     required List<Account> allAccounts,
     required DateTime start,
     required DateTime end,
     required String subject,
   }) async {
-    if (nativeCapable(type, target)) {
-      return Conference.pending(type); // маркер «завести нативно»
+    // Хост встречи: выбранная УЗ; если не выбрана — УЗ календаря или первая.
+    final host = _accountById(allAccounts, accountId);
+    // Нативно только если хост = УЗ календаря (её провайдер создаст встречу сам).
+    final hostIsTarget = (accountId == null || accountId == target?.id);
+    if (hostIsTarget && nativeCapable(type, target)) {
+      return Conference.pending(type, accountId: accountId);
     }
     switch (type) {
       case ConferenceType.teams:
-        return _teams(allAccounts, start, end, subject);
+        return _teams(host ?? _firstOf(allAccounts, ProviderType.graph),
+            start, end, subject);
       case ConferenceType.meet:
-        return _meet(allAccounts);
+        return _meet(host ?? _firstOf(allAccounts, ProviderType.google));
       case ConferenceType.zoom:
         return _zoom(start, end, subject);
       case ConferenceType.telemost:
@@ -112,10 +121,17 @@ class ConferenceProvisioner {
     return null;
   }
 
+  Account? _accountById(List<Account> accounts, String? id) {
+    if (id == null) return null;
+    for (final a in accounts) {
+      if (a.id == id) return a;
+    }
+    return null;
+  }
+
   /// Teams standalone: POST /me/onlineMeetings (scope OnlineMeetings.ReadWrite).
   Future<Conference> _teams(
-      List<Account> accounts, DateTime start, DateTime end, String subject) async {
-    final acc = _firstOf(accounts, ProviderType.graph);
+      Account? acc, DateTime start, DateTime end, String subject) async {
     if (acc == null) {
       throw ConferenceUnavailableException(
           'Нет подключённого O365-аккаунта для встречи Teams');
@@ -157,8 +173,7 @@ class ConferenceProvisioner {
   }
 
   /// Google Meet standalone: POST meet/v2/spaces (scope meetings.space.created).
-  Future<Conference> _meet(List<Account> accounts) async {
-    final acc = _firstOf(accounts, ProviderType.google);
+  Future<Conference> _meet(Account? acc) async {
     if (acc == null) {
       throw ConferenceUnavailableException(
           'Нет подключённого Google-аккаунта для Meet');

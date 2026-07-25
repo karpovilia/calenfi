@@ -52,14 +52,19 @@ class OAuthFlow {
     Map<String, String> extraAuthParams = const {},
     required Future<void> Function(Uri url) launch,
     Duration timeout = const Duration(minutes: 5),
+    int? fixedPort,
+    bool basicAuth = false,
   }) async {
     final verifier = _randomToken();
     final challenge =
         _b64url(sha256.convert(ascii.encode(verifier)).bytes);
     final state = _randomToken(16);
 
-    final server =
-        await HttpServer.bind(InternetAddress.loopbackIPv4, 0, shared: false);
+    // Zoom требует ЗАРАНЕЕ зарегистрированный redirect с фикс-портом — тогда
+    // [fixedPort] задаёт его. Google/MS/Yandex допускают любой loopback-порт (0).
+    final server = await HttpServer.bind(
+        InternetAddress.loopbackIPv4, fixedPort ?? 0,
+        shared: false);
     try {
       final redirectUri = 'http://localhost:${server.port}';
       final authUri = Uri.parse(authorizationEndpoint).replace(
@@ -67,7 +72,8 @@ class OAuthFlow {
           'client_id': clientId,
           'redirect_uri': redirectUri,
           'response_type': 'code',
-          'scope': scopes.join(' '),
+          // Пусто → не шлём scope (Zoom берёт из настроек OAuth-приложения).
+          if (scopes.isNotEmpty) 'scope': scopes.join(' '),
           'code_challenge': challenge,
           'code_challenge_method': 'S256',
           'state': state,
@@ -83,19 +89,27 @@ class OAuthFlow {
             throw OAuthException('время ожидания входа истекло'),
       );
 
+      // Обмен кода. Zoom (basicAuth) хочет client_id:secret в заголовке Basic и
+      // не в теле; Google/MS — client_secret/PKCE в теле.
       final resp = await _dio.post(
         tokenEndpoint,
         data: {
           'grant_type': 'authorization_code',
           'code': code,
           'redirect_uri': redirectUri,
-          'client_id': clientId,
           'code_verifier': verifier,
-          'client_secret': ?clientSecret,
+          if (!basicAuth) 'client_id': clientId,
+          if (!basicAuth) 'client_secret': ?clientSecret,
         },
         options: Options(
           contentType: Headers.formUrlEncodedContentType,
           validateStatus: (s) => s != null && s < 500,
+          headers: basicAuth
+              ? {
+                  'Authorization':
+                      'Basic ${base64Encode(utf8.encode('$clientId:${clientSecret ?? ''}'))}'
+                }
+              : null,
         ),
       );
       final data = (resp.data is Map)

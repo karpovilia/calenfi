@@ -3205,8 +3205,26 @@ class $ContactsTable extends Contacts
     requiredDuringInsert: false,
     defaultValue: const Constant('manual'),
   );
+  static const VerificationMeta _useCountMeta = const VerificationMeta(
+    'useCount',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, displayName, email, source];
+  late final GeneratedColumn<int> useCount = GeneratedColumn<int>(
+    'use_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    displayName,
+    email,
+    source,
+    useCount,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3249,6 +3267,12 @@ class $ContactsTable extends Contacts
         source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
       );
     }
+    if (data.containsKey('use_count')) {
+      context.handle(
+        _useCountMeta,
+        useCount.isAcceptableOrUnknown(data['use_count']!, _useCountMeta),
+      );
+    }
     return context;
   }
 
@@ -3274,6 +3298,10 @@ class $ContactsTable extends Contacts
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       )!,
+      useCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}use_count'],
+      )!,
     );
   }
 
@@ -3288,11 +3316,16 @@ class ContactRow extends DataClass implements Insertable<ContactRow> {
   final String displayName;
   final String email;
   final String source;
+
+  /// Сколько раз контакт добавляли участником — для сортировки подсказок по
+  /// частоте (FR-K).
+  final int useCount;
   const ContactRow({
     required this.id,
     required this.displayName,
     required this.email,
     required this.source,
+    required this.useCount,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3301,6 +3334,7 @@ class ContactRow extends DataClass implements Insertable<ContactRow> {
     map['display_name'] = Variable<String>(displayName);
     map['email'] = Variable<String>(email);
     map['source'] = Variable<String>(source);
+    map['use_count'] = Variable<int>(useCount);
     return map;
   }
 
@@ -3310,6 +3344,7 @@ class ContactRow extends DataClass implements Insertable<ContactRow> {
       displayName: Value(displayName),
       email: Value(email),
       source: Value(source),
+      useCount: Value(useCount),
     );
   }
 
@@ -3323,6 +3358,7 @@ class ContactRow extends DataClass implements Insertable<ContactRow> {
       displayName: serializer.fromJson<String>(json['displayName']),
       email: serializer.fromJson<String>(json['email']),
       source: serializer.fromJson<String>(json['source']),
+      useCount: serializer.fromJson<int>(json['useCount']),
     );
   }
   @override
@@ -3333,6 +3369,7 @@ class ContactRow extends DataClass implements Insertable<ContactRow> {
       'displayName': serializer.toJson<String>(displayName),
       'email': serializer.toJson<String>(email),
       'source': serializer.toJson<String>(source),
+      'useCount': serializer.toJson<int>(useCount),
     };
   }
 
@@ -3341,11 +3378,13 @@ class ContactRow extends DataClass implements Insertable<ContactRow> {
     String? displayName,
     String? email,
     String? source,
+    int? useCount,
   }) => ContactRow(
     id: id ?? this.id,
     displayName: displayName ?? this.displayName,
     email: email ?? this.email,
     source: source ?? this.source,
+    useCount: useCount ?? this.useCount,
   );
   ContactRow copyWithCompanion(ContactsCompanion data) {
     return ContactRow(
@@ -3355,6 +3394,7 @@ class ContactRow extends DataClass implements Insertable<ContactRow> {
           : this.displayName,
       email: data.email.present ? data.email.value : this.email,
       source: data.source.present ? data.source.value : this.source,
+      useCount: data.useCount.present ? data.useCount.value : this.useCount,
     );
   }
 
@@ -3364,13 +3404,14 @@ class ContactRow extends DataClass implements Insertable<ContactRow> {
           ..write('id: $id, ')
           ..write('displayName: $displayName, ')
           ..write('email: $email, ')
-          ..write('source: $source')
+          ..write('source: $source, ')
+          ..write('useCount: $useCount')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, displayName, email, source);
+  int get hashCode => Object.hash(id, displayName, email, source, useCount);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3378,7 +3419,8 @@ class ContactRow extends DataClass implements Insertable<ContactRow> {
           other.id == this.id &&
           other.displayName == this.displayName &&
           other.email == this.email &&
-          other.source == this.source);
+          other.source == this.source &&
+          other.useCount == this.useCount);
 }
 
 class ContactsCompanion extends UpdateCompanion<ContactRow> {
@@ -3386,12 +3428,14 @@ class ContactsCompanion extends UpdateCompanion<ContactRow> {
   final Value<String> displayName;
   final Value<String> email;
   final Value<String> source;
+  final Value<int> useCount;
   final Value<int> rowid;
   const ContactsCompanion({
     this.id = const Value.absent(),
     this.displayName = const Value.absent(),
     this.email = const Value.absent(),
     this.source = const Value.absent(),
+    this.useCount = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ContactsCompanion.insert({
@@ -3399,6 +3443,7 @@ class ContactsCompanion extends UpdateCompanion<ContactRow> {
     required String displayName,
     required String email,
     this.source = const Value.absent(),
+    this.useCount = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        displayName = Value(displayName),
@@ -3408,6 +3453,7 @@ class ContactsCompanion extends UpdateCompanion<ContactRow> {
     Expression<String>? displayName,
     Expression<String>? email,
     Expression<String>? source,
+    Expression<int>? useCount,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3415,6 +3461,7 @@ class ContactsCompanion extends UpdateCompanion<ContactRow> {
       if (displayName != null) 'display_name': displayName,
       if (email != null) 'email': email,
       if (source != null) 'source': source,
+      if (useCount != null) 'use_count': useCount,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3424,6 +3471,7 @@ class ContactsCompanion extends UpdateCompanion<ContactRow> {
     Value<String>? displayName,
     Value<String>? email,
     Value<String>? source,
+    Value<int>? useCount,
     Value<int>? rowid,
   }) {
     return ContactsCompanion(
@@ -3431,6 +3479,7 @@ class ContactsCompanion extends UpdateCompanion<ContactRow> {
       displayName: displayName ?? this.displayName,
       email: email ?? this.email,
       source: source ?? this.source,
+      useCount: useCount ?? this.useCount,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3450,6 +3499,9 @@ class ContactsCompanion extends UpdateCompanion<ContactRow> {
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
+    if (useCount.present) {
+      map['use_count'] = Variable<int>(useCount.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3463,6 +3515,7 @@ class ContactsCompanion extends UpdateCompanion<ContactRow> {
           ..write('displayName: $displayName, ')
           ..write('email: $email, ')
           ..write('source: $source, ')
+          ..write('useCount: $useCount, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5363,6 +5416,7 @@ typedef $$ContactsTableCreateCompanionBuilder =
       required String displayName,
       required String email,
       Value<String> source,
+      Value<int> useCount,
       Value<int> rowid,
     });
 typedef $$ContactsTableUpdateCompanionBuilder =
@@ -5371,6 +5425,7 @@ typedef $$ContactsTableUpdateCompanionBuilder =
       Value<String> displayName,
       Value<String> email,
       Value<String> source,
+      Value<int> useCount,
       Value<int> rowid,
     });
 
@@ -5400,6 +5455,11 @@ class $$ContactsTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
     column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get useCount => $composableBuilder(
+    column: $table.useCount,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5432,6 +5492,11 @@ class $$ContactsTableOrderingComposer
     column: $table.source,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get useCount => $composableBuilder(
+    column: $table.useCount,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ContactsTableAnnotationComposer
@@ -5456,6 +5521,9 @@ class $$ContactsTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<int> get useCount =>
+      $composableBuilder(column: $table.useCount, builder: (column) => column);
 }
 
 class $$ContactsTableTableManager
@@ -5493,12 +5561,14 @@ class $$ContactsTableTableManager
                 Value<String> displayName = const Value.absent(),
                 Value<String> email = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<int> useCount = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ContactsCompanion(
                 id: id,
                 displayName: displayName,
                 email: email,
                 source: source,
+                useCount: useCount,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5507,12 +5577,14 @@ class $$ContactsTableTableManager
                 required String displayName,
                 required String email,
                 Value<String> source = const Value.absent(),
+                Value<int> useCount = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ContactsCompanion.insert(
                 id: id,
                 displayName: displayName,
                 email: email,
                 source: source,
+                useCount: useCount,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

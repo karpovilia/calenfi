@@ -59,6 +59,26 @@ class ContactRepository {
         );
   }
 
+  /// Отметить использование контакта (добавили участником) — заводит контакт,
+  /// если нет, и увеличивает [Contacts.useCount] для сортировки по частоте.
+  Future<void> bumpUse({required String email, String? displayName}) async {
+    final id = email.toLowerCase();
+    final n = await (_db.update(_db.contacts)..where((c) => c.id.equals(id)))
+        .write(ContactsCompanion.custom(
+            useCount: _db.contacts.useCount + const Constant(1)));
+    if (n == 0) {
+      await _db.into(_db.contacts).insert(ContactsCompanion(
+            id: Value(id),
+            displayName: Value(displayName?.trim().isNotEmpty == true
+                ? displayName!.trim()
+                : email),
+            email: Value(email),
+            source: const Value('manual'),
+            useCount: const Value(1),
+          ));
+    }
+  }
+
   Future<void> delete(String id) =>
       (_db.delete(_db.contacts)..where((c) => c.id.equals(id))).go();
 }

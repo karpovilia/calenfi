@@ -123,6 +123,10 @@ class Contacts extends Table {
   TextColumn get email => text()();
   TextColumn get source => text().withDefault(const Constant('manual'))();
 
+  /// Сколько раз контакт добавляли участником — для сортировки подсказок по
+  /// частоте (FR-K).
+  IntColumn get useCount => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -132,7 +136,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -155,6 +159,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 7) {
             await m.addColumn(calendars, calendars.nameOverride);
+          }
+          if (from < 8) {
+            await m.addColumn(contacts, contacts.useCount);
           }
         },
       );
