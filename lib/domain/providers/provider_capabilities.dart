@@ -1,3 +1,5 @@
+import '../models/enums.dart';
+
 /// Возможности конкретного адаптера (docs/architecture.md §6).
 ///
 /// UI и use cases включают фичи по этим флагам, а НЕ по типу провайдера —
@@ -50,9 +52,18 @@ class ProviderCapabilities {
   static const ews = ProviderCapabilities(
     crud: true,
     incrementalSync: true,
-    rsvp: false, // FR-R4 — позже
+    rsvp: true, // EWS Accept/Decline/TentativelyAcceptItem
     createNativeConference: false,
     serverReminders: true,
     attendees: true,
   );
+
+  /// Возможности по типу провайдера — единая точка, чтобы UI гейтил операции
+  /// по флагам, а не по `if (provider == ...)`.
+  static ProviderCapabilities forProvider(ProviderType p) => switch (p) {
+        ProviderType.google => google,
+        ProviderType.graph => graph,
+        ProviderType.caldav => caldav,
+        ProviderType.ews => ews,
+      };
 }

@@ -1,12 +1,16 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../app/providers.dart';
+import '../../domain/models/account.dart';
 import '../../domain/models/attendee.dart';
 import '../../domain/models/calendar_event.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/models/merged_event.dart';
+import '../../domain/providers/provider_capabilities.dart';
 import '../../domain/usecases/event_actions.dart';
 import '../../services/maps_service.dart';
 import '../event_editor/event_editor_screen.dart';
@@ -161,8 +165,9 @@ class _EventDetails extends ConsumerWidget {
 
             const SizedBox(height: 16),
 
-            // RSVP (FR-R2)
-            if (e.myResponse != ResponseStatus.organizer)
+            // RSVP (FR-R2) — только если провайдер аккаунта его поддерживает
+            // (CalDAV пока нет; иначе нажатие молча падало в outbox).
+            if (e.myResponse != ResponseStatus.organizer && _rsvpSupported(ref, e))
               Wrap(spacing: 8, children: [
                 _rsvpChip(context, ref, e, ResponseStatus.accepted, 'Принять'),
                 _rsvpChip(context, ref, e, ResponseStatus.tentative, 'Под вопросом'),
@@ -206,6 +211,14 @@ class _EventDetails extends ConsumerWidget {
     if (scope == null) return; // отмена
     await ref.read(eventActionsProvider).delete(e, scope: scope);
     nav.pop();
+  }
+
+  /// Поддерживает ли провайдер аккаунта события RSVP (по [ProviderCapabilities]).
+  bool _rsvpSupported(WidgetRef ref, CalendarEvent e) {
+    final accts = ref.read(accountsStreamProvider).value ?? const <Account>[];
+    final acc = accts.firstWhereOrNull((a) => a.id == e.source.accountId);
+    if (acc == null) return true; // неизвестный аккаунт — не прячем
+    return ProviderCapabilities.forProvider(acc.provider).rsvp;
   }
 
   Widget _rsvpChip(BuildContext context, WidgetRef ref, CalendarEvent e,

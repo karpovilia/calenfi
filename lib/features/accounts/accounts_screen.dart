@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/accounts_config.dart';
 import '../../app/providers.dart';
 import '../../data/secure/credential_source.dart';
 import '../../domain/models/account.dart';
 import '../../domain/models/calendar.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/models/refresh_policy.dart';
+import 'add_account_sheet.dart';
 
 /// Экран учётных записей (FR-A): список УЗ, статусы, календари с тумблерами
 /// видимости, удаление, добавление.
@@ -36,31 +38,13 @@ class AccountsScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.all(16),
               child: OutlinedButton.icon(
-                onPressed: () => _showAddDialog(context),
+                onPressed: () => showAddAccountSheet(context),
                 icon: const Icon(Icons.add),
                 label: const Text('Добавить учётную запись'),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showAddDialog(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Добавить учётную запись'),
-        content: const Text(
-          'Подключение реальных провайдеров (Google, O365, Yandex CalDAV, '
-          'Exchange) появится на Этапе 2 — после регистрации OAuth-клиентов '
-          'и ввода кредов. Сейчас работают демо-аккаунты на моках.',
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: const Text('Ок')),
-        ],
       ),
     );
   }
@@ -81,6 +65,8 @@ class _AccountTile extends ConsumerWidget {
         onSelected: (v) async {
           if (v == 'delete') {
             await ref.read(accountRepositoryProvider).deleteAccount(account.id);
+            // Убрать и из accounts.json, иначе вернётся при следующем старте.
+            await removeConfiguredAccount(account.id);
           } else if (v == 'password') {
             await _changePassword(context, ref);
           }

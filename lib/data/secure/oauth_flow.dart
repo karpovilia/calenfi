@@ -1,0 +1,157 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
+
+/// Результат OAuth-обмена: токены + сырой ответ token-endpoint'а.
+class OAuthResult {
+  OAuthResult(this.accessToken, this.refreshToken, this.expiresIn, this.raw);
+  final String accessToken;
+  final String? refreshToken;
+  final int expiresIn;
+  final Map<String, dynamic> raw;
+}
+
+class OAuthException implements Exception {
+  OAuthException(this.message);
+  final String message;
+  @override
+  String toString() => 'OAuthException: $message';
+}
+
+/// Кросс-платформенный OAuth 2.0 **authorization code + PKCE** через loopback:
+/// поднимаем локальный HTTP-сервер на `127.0.0.1:<случайный порт>`, открываем
+/// системный браузер (колбэк [launch]), ловим редирект с `code`, меняем его на
+/// токены. Работает и на десктопе, и на Android/iOS (loopback-редирект). Не
+/// требует нативной регистрации схемы — только чтобы `http://localhost` (Google:
+/// любой loopback-порт; Microsoft: зарегистрировать `http://localhost` в Azure).
+class OAuthFlow {
+  OAuthFlow({Dio? dio}) : _dio = dio ?? Dio();
+  final Dio _dio;
+
+  static final _rand = Random.secure();
+
+  static String _b64url(List<int> bytes) =>
+      base64Url.encode(bytes).replaceAll('=', '');
+
+  static String _randomToken([int bytes = 48]) =>
+      _b64url(List<int>.generate(bytes, (_) => _rand.nextInt(256)));
+
+  /// Запускает флоу. [launch] должен открыть переданный URL в браузере
+  /// (в приложении — через url_launcher). Возвращает токены; бросает
+  /// [OAuthException] при ошибке/отмене/таймауте.
+  Future<OAuthResult> run({
+    required String authorizationEndpoint,
+    required String tokenEndpoint,
+    required String clientId,
+    String? clientSecret,
+    required List<String> scopes,
+    Map<String, String> extraAuthParams = const {},
+    required Future<void> Function(Uri url) launch,
+    Duration timeout = const Duration(minutes: 5),
+  }) async {
+    final verifier = _randomToken();
+    final challenge =
+        _b64url(sha256.convert(ascii.encode(verifier)).bytes);
+    final state = _randomToken(16);
+
+    final server =
+        await HttpServer.bind(InternetAddress.loopbackIPv4, 0, shared: false);
+    try {
+      final redirectUri = 'http://localhost:${server.port}';
+      final authUri = Uri.parse(authorizationEndpoint).replace(
+        queryParameters: {
+          'client_id': clientId,
+          'redirect_uri': redirectUri,
+          'response_type': 'code',
+          'scope': scopes.join(' '),
+          'code_challenge': challenge,
+          'code_challenge_method': 'S256',
+          'state': state,
+          ...extraAuthParams,
+        },
+      );
+
+      await launch(authUri);
+
+      final code = await _awaitRedirect(server, state).timeout(
+        timeout,
+        onTimeout: () =>
+            throw OAuthException('время ожидания входа истекло'),
+      );
+
+      final resp = await _dio.post(
+        tokenEndpoint,
+        data: {
+          'grant_type': 'authorization_code',
+          'code': code,
+          'redirect_uri': redirectUri,
+          'client_id': clientId,
+          'code_verifier': verifier,
+          'client_secret': ?clientSecret,
+        },
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+          validateStatus: (s) => s != null && s < 500,
+        ),
+      );
+      final data = (resp.data is Map)
+          ? (resp.data as Map).cast<String, dynamic>()
+          : <String, dynamic>{};
+      final at = data['access_token'];
+      if (at is! String) {
+        throw OAuthException(
+            'обмен кода не удался: ${data['error_description'] ?? data['error'] ?? resp.statusCode}');
+      }
+      return OAuthResult(
+        at,
+        data['refresh_token'] as String?,
+        (data['expires_in'] as num?)?.toInt() ?? 3600,
+        data,
+      );
+    } finally {
+      await server.close(force: true);
+    }
+  }
+
+  /// Ждёт запрос на loopback с параметром `code`, отвечает страницей «можно
+  /// закрыть вкладку» и возвращает код. Игнорирует посторонние запросы
+  /// (favicon и т.п.).
+  Future<String> _awaitRedirect(HttpServer server, String state) async {
+    await for (final req in server) {
+      final q = req.uri.queryParameters;
+      if (!q.containsKey('code') && !q.containsKey('error')) {
+        req.response
+          ..statusCode = 404
+          ..close();
+        continue;
+      }
+      final err = q['error'];
+      final code = q['code'];
+      final ok = err == null && code != null && q['state'] == state;
+      req.response
+        ..statusCode = 200
+        ..headers.contentType = ContentType.html
+        ..write(_resultPage(ok
+            ? 'Готово! Вернитесь в Calenfi — вкладку можно закрыть.'
+            : 'Не удалось войти: ${err ?? 'неверный state'}. Вернитесь в Calenfi.'));
+      await req.response.close();
+
+      if (err != null) throw OAuthException('провайдер вернул ошибку: $err');
+      if (q['state'] != state) throw OAuthException('несовпадение state (CSRF)');
+      if (code == null) throw OAuthException('нет кода авторизации');
+      return code;
+    }
+    throw OAuthException('сервер закрыт до получения кода');
+  }
+
+  static String _resultPage(String message) => '''
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calenfi</title></head>
+<body style="font-family: -apple-system, system-ui, sans-serif; text-align:center; padding:48px; color:#222">
+<h2>Calenfi</h2><p style="font-size:16px">$message</p></body></html>''';
+}

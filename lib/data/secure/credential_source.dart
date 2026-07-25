@@ -52,6 +52,17 @@ class CredentialSource {
   String? get zoomClientId => _nonEmpty(_values['ZOOM_CLIENT_ID']);
   String? get zoomClientSecret => _nonEmpty(_values['ZOOM_CLIENT_SECRET']);
 
+  /// OAuth-клиент Google (для in-app подключения аккаунта). Тип «installed»,
+  /// client_secret не конфиденциален, но нужен при обмене кода. Задаётся ключами
+  /// GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET в хранилище.
+  String? get googleClientId => _nonEmpty(_values['GOOGLE_OAUTH_CLIENT_ID']);
+  String? get googleClientSecret =>
+      _nonEmpty(_values['GOOGLE_OAUTH_CLIENT_SECRET']);
+
+  /// OAuth-клиент Microsoft Graph (public client, PKCE без секрета).
+  String? get graphClientId => _nonEmpty(_values['GRAPH_CLIENT_ID']);
+  String get graphTenant => _nonEmpty(_values['GRAPH_TENANT']) ?? 'common';
+
   static String? _nonEmpty(String? v) => (v == null || v.isEmpty) ? null : v;
 }
 

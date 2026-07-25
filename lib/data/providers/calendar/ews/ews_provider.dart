@@ -153,25 +153,154 @@ class EwsProvider implements CalendarProvider {
         upserts: events, deletedIds: const [], newSyncState: null, fullWindow: range);
   }
 
-  // ───────── запись (TODO позже) ─────────
+  // ───────── запись (EWS SOAP) ─────────
+
   @override
-  Future<CalendarEvent> createEvent(Account a, Calendar c, CalendarEvent e) async =>
-      throw UnimplementedError('EWS create — следующий шаг');
+  Future<CalendarEvent> createEvent(Account a, Calendar c, CalendarEvent e) async {
+    // Повторы в EWS требуют объёмного <t:Recurrence> — в MVP серии не создаём,
+    // чтобы не «терять» правило молча: явная ошибка (её покажет слой синка).
+    if (e.recurrenceRule != null && e.recurrenceId == null) {
+      throw UnsupportedError(
+          'Создание повторяющихся серий в Exchange пока не поддержано');
+    }
+    final attendees = e.attendees.where((x) => !x.isResource).toList();
+    final sendMode =
+        attendees.isEmpty ? 'SendToNone' : 'SendToAllAndSaveCopy';
+    final body = '''${_envelopeOpen('CreateItem')}
+<m:CreateItem SendMeetingInvitations="$sendMode">
+<m:SavedItemFolderId><t:DistinguishedFolderId Id="calendar"/></m:SavedItemFolderId>
+<m:Items><t:CalendarItem>
+<t:Subject>${_esc(e.title)}</t:Subject>
+${e.description == null ? '' : '<t:Body BodyType="Text">${_esc(e.description!)}</t:Body>'}
+<t:ReminderIsSet>false</t:ReminderIsSet>
+<t:Start>${_z(e.startUtc)}</t:Start>
+<t:End>${_z(e.endUtc)}</t:End>
+<t:IsAllDayEvent>${e.allDay}</t:IsAllDayEvent>
+<t:LegacyFreeBusyStatus>${e.showAs == ShowAs.free ? 'Free' : 'Busy'}</t:LegacyFreeBusyStatus>
+${e.location == null ? '' : '<t:Location>${_esc(e.location!)}</t:Location>'}
+${_attendeesXml(attendees)}
+</t:CalendarItem></m:Items></m:CreateItem>${_envelopeClose()}''';
+
+    final doc = _checked(await _soap(_action('CreateItem'), body));
+    final idEl = doc
+        .findAllElements('CalendarItem', namespace: _tns)
+        .firstOrNull
+        ?.findElements('ItemId', namespace: _tns)
+        .firstOrNull;
+    final id = idEl?.getAttribute('Id');
+    return id == null
+        ? e
+        : e.copyWith(
+            source: e.source.copyWith(
+                providerEventId: id, etag: idEl?.getAttribute('ChangeKey')));
+  }
+
   @override
-  Future<CalendarEvent> updateEvent(Account a, CalendarEvent e) async =>
-      throw UnimplementedError('EWS update — следующий шаг');
+  Future<CalendarEvent> updateEvent(Account a, CalendarEvent e) async {
+    final id = e.source.providerEventId;
+    if (id == null) throw StateError('EWS update: нет ItemId');
+    String set(String field, String ns, String inner) =>
+        '<t:SetItemField><t:FieldURI FieldURI="$field"/>'
+        '<t:CalendarItem>$inner</t:CalendarItem></t:SetItemField>';
+    final updates = <String>[
+      set('item:Subject', 't', '<t:Subject>${_esc(e.title)}</t:Subject>'),
+      set('calendar:Start', 't', '<t:Start>${_z(e.startUtc)}</t:Start>'),
+      set('calendar:End', 't', '<t:End>${_z(e.endUtc)}</t:End>'),
+      if (e.location != null)
+        set('calendar:Location', 't', '<t:Location>${_esc(e.location!)}</t:Location>'),
+      if (e.description != null)
+        set('item:Body', 't', '<t:Body BodyType="Text">${_esc(e.description!)}</t:Body>'),
+    ].join();
+    final body = '''${_envelopeOpen('UpdateItem')}
+<m:UpdateItem ConflictResolution="AutoResolve" SendMeetingInvitationsOrCancellations="SendToNone">
+<m:ItemChanges><t:ItemChange>
+<t:ItemId Id="${_attr(id)}"${e.source.etag == null ? '' : ' ChangeKey="${_attr(e.source.etag!)}"'}/>
+<t:Updates>$updates</t:Updates>
+</t:ItemChange></m:ItemChanges></m:UpdateItem>${_envelopeClose()}''';
+    final doc = _checked(await _soap(_action('UpdateItem'), body));
+    final idEl = doc.findAllElements('ItemId', namespace: _tns).firstOrNull;
+    return idEl == null
+        ? e
+        : e.copyWith(
+            source: e.source.copyWith(etag: idEl.getAttribute('ChangeKey')));
+  }
+
   @override
-  Future<void> deleteEvent(Account a, CalendarEvent e, RecurrenceScope s) async =>
-      throw UnimplementedError('EWS delete — следующий шаг');
+  Future<void> deleteEvent(Account a, CalendarEvent e, RecurrenceScope s) async {
+    final id = e.source.providerEventId;
+    if (id == null) throw StateError('EWS delete: нет ItemId');
+    final body = '''${_envelopeOpen('DeleteItem')}
+<m:DeleteItem DeleteType="MoveToDeletedItems" SendMeetingCancellations="SendToNone">
+<m:ItemIds><t:ItemId Id="${_attr(id)}"${e.source.etag == null ? '' : ' ChangeKey="${_attr(e.source.etag!)}"'}/></m:ItemIds>
+</m:DeleteItem>${_envelopeClose()}''';
+    _checked(await _soap(_action('DeleteItem'), body));
+  }
+
   @override
-  Future<void> respondToInvite(Account a, CalendarEvent e, ResponseStatus r) async =>
-      throw UnsupportedError('RSVP по EWS — позже (FR-R4)');
+  Future<void> respondToInvite(Account a, CalendarEvent e, ResponseStatus r) async {
+    final id = e.source.providerEventId;
+    if (id == null) throw StateError('EWS RSVP: нет ItemId');
+    final verb = switch (r) {
+      ResponseStatus.accepted => 'AcceptItem',
+      ResponseStatus.declined => 'DeclineItem',
+      ResponseStatus.tentative => 'TentativelyAcceptItem',
+      _ => throw UnsupportedError('EWS RSVP: неподдерживаемый ответ $r'),
+    };
+    final body = '''${_envelopeOpen('CreateItem')}
+<m:CreateItem MessageDisposition="SendAndSaveCopy">
+<m:Items><t:$verb><t:ReferenceItemId Id="${_attr(id)}"${e.source.etag == null ? '' : ' ChangeKey="${_attr(e.source.etag!)}"'}/></t:$verb></m:Items>
+</m:CreateItem>${_envelopeClose()}''';
+    _checked(await _soap(_action('CreateItem'), body));
+  }
 
   // ───────── helpers ─────────
 
   static const _tns = 'http://schemas.microsoft.com/exchange/services/2006/types';
   static const _mns =
       'http://schemas.microsoft.com/exchange/services/2006/messages';
+
+  static String _action(String op) =>
+      'http://schemas.microsoft.com/exchange/services/2006/messages/$op';
+
+  static String _envelopeOpen(String op) => '''<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:t="$_tns" xmlns:m="$_mns">
+<soap:Header><t:RequestServerVersion Version="Exchange2010_SP2"/></soap:Header>
+<soap:Body>''';
+
+  static String _envelopeClose() => '</soap:Body></soap:Envelope>';
+
+  /// Экранирование текстового значения XML-элемента.
+  static String _esc(String s) => s
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
+
+  static String _attendeesXml(List<dynamic> attendees) {
+    if (attendees.isEmpty) return '';
+    final rows = attendees
+        .map((a) =>
+            '<t:Attendee><t:Mailbox><t:EmailAddress>${_esc(a.email as String)}</t:EmailAddress></t:Mailbox></t:Attendee>')
+        .join();
+    return '<t:RequiredAttendees>$rows</t:RequiredAttendees>';
+  }
+
+  /// Разбирает ответ EWS и БРОСАЕТ, если ResponseClass="Error" — иначе запись
+  /// молча «терялась» бы (см. слой синка: ошибка станет видимой пользователю).
+  XmlDocument _checked(String xml) {
+    final doc = XmlDocument.parse(xml);
+    for (final m in doc.findAllElements('ResponseCode', namespace: _mns)) {
+      final code = m.innerText;
+      if (code != 'NoError') {
+        final msg = m.parent
+                ?.findElements('MessageText', namespace: _mns)
+                .firstOrNull
+                ?.innerText ??
+            code;
+        throw 'EWS $code: $msg';
+      }
+    }
+    return doc;
+  }
 
   /// Экранирование значения XML-атрибута (ItemId Id).
   static String _attr(String s) => s
@@ -220,7 +349,11 @@ class EwsProvider implements CalendarProvider {
       _ => ResponseStatus.needsAction,
     };
     final showAs = (text('LegacyFreeBusyStatus') == 'Free') ? ShowAs.free : ShowAs.busy;
-    final itemId = it.findElements('ItemId', namespace: _tns).firstOrNull?.getAttribute('Id');
+    final itemIdEl = it.findElements('ItemId', namespace: _tns).firstOrNull;
+    final itemId = itemIdEl?.getAttribute('Id');
+    // ChangeKey обязателен для UpdateItem и желателен для DeleteItem — храним
+    // его в etag источника (иначе правки/удаление на EWS падают).
+    final changeKey = itemIdEl?.getAttribute('ChangeKey');
 
     // occurrences повторяющейся серии в EWS имеют ОДИНАКОВЫЙ UID — поэтому
     // в локальный id добавляем время начала, иначе они схлопнутся при upsert.
@@ -236,7 +369,10 @@ class EwsProvider implements CalendarProvider {
       myResponse: myResp,
       showAs: showAs,
       source: EventSource(
-          accountId: acc.id, calendarId: cal.id, providerEventId: itemId),
+          accountId: acc.id,
+          calendarId: cal.id,
+          providerEventId: itemId,
+          etag: changeKey),
     );
   }
 

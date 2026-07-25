@@ -171,8 +171,11 @@ class SyncEngine {
           }
         }
 
-        // 2) push сначала — чтобы не перетереть локальные правки приходящим pull
-        await _processOutbox(acc, provider);
+        // 2) push сначала — чтобы не перетереть локальные правки приходящим pull.
+        // Возвращает текст ошибки, если правка не доехала (не поддержано/лимит),
+        // — тогда pull всё равно делаем, но статус ставим error, а не ok, чтобы
+        // пользователь видел: изменение НЕ сохранилось (не молчим).
+        final pushError = await _processOutbox(acc, provider);
 
         // 3) pull по каждому календарю
         for (final cal in cals) {
@@ -183,6 +186,11 @@ class SyncEngine {
         // у которых уже есть серверный двойник (иначе дубль в UI).
         await events.cleanupGhostDuplicates();
 
+        if (pushError != null) {
+          await accounts.recordSyncFailure(
+              acc.id, AccountStatus.syncError, pushError);
+          return AccountSyncReport(acc.id, error: pushError);
+        }
         await accounts.recordSyncSuccess(acc.id, DateTime.now().toUtc());
         return AccountSyncReport(acc.id);
       } catch (e) {
@@ -267,9 +275,27 @@ class SyncEngine {
     }
   }
 
-  Future<void> _processOutbox(Account acc, CalendarProvider provider) async {
+  /// Сколько раз пробуем протолкнуть задание, прежде чем признать провал и
+  /// показать ошибку (вместо тихого вечного ретрая — FR-A6).
+  static const _maxOutboxRetries = 5;
+
+  /// Проталкивает Outbox своего аккаунта. Возвращает текст ошибки, если хотя бы
+  /// одна правка не доехала (постоянная ошибка или исчерпан лимит попыток), —
+  /// иначе null. Ошибку поднимаем в [_syncAccount], чтобы статус стал error.
+  Future<String?> _processOutbox(Account acc, CalendarProvider provider) async {
     final pending = await events.pendingOutbox();
+    String? failure;
     for (final item in pending) {
+      // Задание уже исчерпало попытки — не долбим сервер молча; ошибка уже
+      // отражена в статусе аккаунта (см. catch ниже). Ждём ручного действия.
+      if (item.retryCount >= _maxOutboxRetries) {
+        // Но принадлежность СВОЕМУ аккаунту всё равно проверим для отчёта.
+        final ev = await events.getById(item.eventId);
+        if (item.op == 'create' || ev?.source.accountId == acc.id) {
+          failure ??= 'изменение не отправлено (исчерпаны попытки)';
+        }
+        continue;
+      }
       try {
         final event = await events.getById(item.eventId);
         // Пуш только для СВОЕГО аккаунта. Раньше синк другого аккаунта доходил
@@ -357,10 +383,22 @@ class SyncEngine {
             }
         }
         await events.removeOutbox(item.id);
-      } catch (_) {
-        await events.bumpRetry(item.id, item.retryCount + 1);
+      } catch (e) {
+        final attempts = item.retryCount + 1;
+        await events.bumpRetry(item.id, attempts);
+        // Постоянные ошибки (не поддерживается провайдером) ретраить бессмысленно
+        // — сразу «сжигаем» попытки. Иначе — после лимита. В обоих случаях
+        // показываем ошибку на аккаунте, а не теряем правку молча.
+        final permanent = e is UnsupportedError || e is UnimplementedError;
+        if (permanent) {
+          await events.bumpRetry(item.id, _maxOutboxRetries);
+        }
+        if (permanent || attempts >= _maxOutboxRetries) {
+          failure ??= _describe(e);
+        }
       }
     }
+    return failure;
   }
 
   static String _readInt(String json, String key) {

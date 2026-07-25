@@ -47,6 +47,31 @@ Prebuilt binaries for every platform are attached to each
 > **Android:** the APK is signed with a debug key for now — Android will warn on
 > install. A release-signed build is planned.
 
+## Connecting accounts
+
+Open **Accounts → Add account** and pick a provider:
+
+- **Google / Microsoft 365** — sign in through your browser (OAuth 2.0
+  authorization-code + PKCE, loopback redirect; works on desktop and mobile).
+  Requires an OAuth client to be configured — see below.
+- **Yandex (CalDAV) / Exchange (EWS)** — enter your e-mail and an **app
+  password** (not your main password).
+
+### OAuth client configuration
+
+Google/Microsoft sign-in needs your own OAuth client id (the app ships without
+one). Store the values in the keyring via the CLI:
+
+```bash
+# Google (OAuth client of type "Desktop")
+tools/calenfi secret-set --key GOOGLE_OAUTH_CLIENT_ID     --value "…apps.googleusercontent.com"
+tools/calenfi secret-set --key GOOGLE_OAUTH_CLIENT_SECRET --value "…"
+# Microsoft (Azure app registration, platform "Mobile and desktop",
+# redirect http://localhost)
+tools/calenfi secret-set --key GRAPH_CLIENT_ID --value "…"
+tools/calenfi secret-set --key GRAPH_TENANT    --value "common"
+```
+
 ## Credentials & privacy
 
 Calenfi is local-first and stores nothing on any server of its own. Your

@@ -57,3 +57,64 @@ ProviderType _providerFromName(String? name) => switch (name) {
       'ews' || 'exchange' => ProviderType.ews,
       _ => throw FormatException('неизвестный provider: $name'),
     };
+
+String _providerName(ProviderType p) => switch (p) {
+      ProviderType.google => 'google',
+      ProviderType.graph => 'graph',
+      ProviderType.caldav => 'caldav',
+      ProviderType.ews => 'ews',
+    };
+
+Map<String, dynamic> _accountToJson(Account a) {
+  final cfg = <String, dynamic>{
+    if (a.config.ewsUrl != null) 'ewsUrl': a.config.ewsUrl,
+    if (a.config.caldavHost != null) 'caldavHost': a.config.caldavHost,
+    if (a.config.caldavPort != null) 'caldavPort': a.config.caldavPort,
+    if (a.config.caldavPrincipalPath != null)
+      'caldavPrincipalPath': a.config.caldavPrincipalPath,
+    if (a.config.scopes.isNotEmpty) 'scopes': a.config.scopes,
+  };
+  return {
+    'id': a.id,
+    'provider': _providerName(a.provider),
+    'displayName': a.displayName,
+    'email': a.email,
+    if (cfg.isNotEmpty) 'config': cfg,
+  };
+}
+
+/// Перезаписывает `accounts.json` (в конфиг-каталоге, вне дерева проекта).
+/// Секреты сюда НЕ пишутся — только метаданные учётных записей.
+Future<void> saveConfiguredAccounts(List<Account> accounts) async {
+  final file = File(accountsConfigPath());
+  await file.parent.create(recursive: true);
+  final json = const JsonEncoder.withIndent('  ')
+      .convert(accounts.map(_accountToJson).toList());
+  await file.writeAsString('$json\n');
+}
+
+/// Добавляет/обновляет учётную запись в `accounts.json` (по `id`).
+Future<void> addConfiguredAccount(Account a) async {
+  final list = loadConfiguredAccounts().where((x) => x.id != a.id).toList()
+    ..add(a);
+  await saveConfiguredAccounts(list);
+}
+
+/// Убирает учётную запись из `accounts.json` (при удалении в UI).
+Future<void> removeConfiguredAccount(String id) async {
+  final list = loadConfiguredAccounts().where((x) => x.id != id).toList();
+  await saveConfiguredAccounts(list);
+}
+
+/// Свободный идентификатор аккаунта для нового подключения (`acc-google`,
+/// `acc-google-2`, …) — стабильный префикс по провайдеру + суффикс при коллизии.
+String freeAccountId(ProviderType provider, {Iterable<String> taken = const []}) {
+  final base = 'acc-${_providerName(provider)}';
+  final used = taken.toSet();
+  if (!used.contains(base)) return base;
+  for (var i = 2; i < 1000; i++) {
+    final id = '$base-$i';
+    if (!used.contains(id)) return id;
+  }
+  return '$base-${used.length}';
+}

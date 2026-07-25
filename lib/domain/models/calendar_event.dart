@@ -20,6 +20,19 @@ class EventSource {
 
   /// ETag / changeKey для контроля конфликтов (FR-S5).
   final String? etag;
+
+  EventSource copyWith({
+    String? accountId,
+    String? calendarId,
+    String? providerEventId,
+    String? etag,
+  }) =>
+      EventSource(
+        accountId: accountId ?? this.accountId,
+        calendarId: calendarId ?? this.calendarId,
+        providerEventId: providerEventId ?? this.providerEventId,
+        etag: etag ?? this.etag,
+      );
 }
 
 /// Событие календаря.

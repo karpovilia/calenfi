@@ -6,6 +6,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-07-25
+
+### Added
+- **In-app account connection** (no more manual config files): a real "Add
+  account" flow — Google and Microsoft 365 sign in through the browser
+  (OAuth 2.0 authorization-code + PKCE via a loopback redirect, works on
+  desktop and mobile), Yandex (CalDAV) and Exchange (EWS) use an app-password
+  form. Accounts persist to `accounts.json`, credentials to the OS keyring;
+  removing an account cleans both.
+- **Exchange (EWS) write support**: create / update / delete events and RSVP
+  (Accept / Decline / Tentative) via EWS SOAP — previously read-only.
+
+### Fixed
+- **No more silently lost edits.** Failed outbox pushes used to retry forever
+  with no user feedback (`retryCount` was written but never read). Now a
+  permanent error (unsupported op) or an exhausted retry budget marks the
+  account with a sync error instead of pretending the change was saved.
+- **Provider capabilities are enforced in the UI.** RSVP controls no longer
+  appear for providers that don't support them (e.g. CalDAV), so a tap can't
+  fail silently.
+
+### Tests
+- Loopback OAuth flow (PKCE params, code exchange, CSRF/state check), outbox
+  failure surfacing, and provider-capability gating.
+
 ## [0.1.1] — 2026-07-23
 
 ### Added
@@ -57,6 +82,7 @@ First public release.
   (libsecret / Keychain / DPAPI), with an encrypted-at-rest file fallback and
   `flutter_secure_storage` on mobile.
 
-[Unreleased]: https://github.com/karpovilia/calenfi/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/karpovilia/calenfi/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/karpovilia/calenfi/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/karpovilia/calenfi/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/karpovilia/calenfi/releases/tag/v0.1.0
