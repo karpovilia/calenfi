@@ -217,5 +217,17 @@
   "setShowMonth": "Monatsansicht anzeigen",
   "setShowMonthSubtitle": "Auf dem Handy ist die Monatsansicht eng — du kannst sie ausblenden",
   "setTitle": "Einstellungen",
-  "setView": "Ansicht"
+  "setView": "Ansicht",
+  "uiCancel": "Abbrechen",
+  "uiError": "Fehler: {error}",
+  "uiMove": "Verschieben",
+  "uiMoveEventBody": "«{title}»\n\n{range}",
+  "uiMoveEventTitle": "Termin verschieben?",
+  "uiNoTitle": "Ohne Titel",
+  "uiNotUpdated": "Nicht aktualisiert: {accounts}",
+  "uiReasonAuthError": "Authentifizierungsfehler",
+  "uiReasonFailure": "Fehler",
+  "uiReasonNeedsReconnect": "Neuverbindung",
+  "uiReasonOffline": "kein Netz",
+  "uiRetry": "Wiederholen"
 }

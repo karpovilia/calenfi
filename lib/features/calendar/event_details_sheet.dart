@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/providers.dart';
@@ -49,26 +50,26 @@ class _EventDetails extends ConsumerWidget {
     final meetingUrl = e.conference?.joinUrl ?? _detectMeetingUrl(e);
     final meetingType = e.conference?.type ??
         (meetingUrl != null ? _guessConfType(meetingUrl) : ConferenceType.unknown);
-    String hm(DateTime d) =>
-        '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    // Форматирование по активной локали (intl).
+    final loc = Localizations.localeOf(context).toString();
+    final hmf = DateFormat.Hm(loc); // 24-ч время «14:00»
+    final wdmy = DateFormat.yMMMEd(loc); // «ср, 17 июн 2026» / «Wed, Jun 17, 2026»
+    final dmy = DateFormat.yMd(loc); // «17.06.2026» / «6/17/2026»
+    String hm(DateTime d) => hmf.format(d);
     // Строка даты/времени с ДАТОЙ (не только время) — иначе непонятно, какого
     // числа событие (важно для результатов поиска).
     String schedule() {
-      String two(int v) => v.toString().padLeft(2, '0');
-      const wd = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
-      String dmy(DateTime d) => '${two(d.day)}.${two(d.month)}.${d.year}';
       final sameDay =
           s.year == en.year && s.month == en.month && s.day == en.day;
       if (e.allDay) {
         return sameDay
-            ? '${wd[s.weekday - 1]}, ${dmy(s)} · ${l10n.detAllDay}'
-            : '${dmy(s)} — ${dmy(en)} · ${l10n.detAllDay}';
+            ? '${wdmy.format(s)} · ${l10n.detAllDay}'
+            : '${dmy.format(s)} — ${dmy.format(en)} · ${l10n.detAllDay}';
       }
       if (sameDay) {
-        return '${wd[s.weekday - 1]}, ${dmy(s)} · ${hm(s)} — ${hm(en)}';
+        return '${wdmy.format(s)} · ${hm(s)} — ${hm(en)}';
       }
-      return '${wd[s.weekday - 1]} ${dmy(s)} ${hm(s)} — '
-          '${wd[en.weekday - 1]} ${dmy(en)} ${hm(en)}';
+      return '${wdmy.format(s)} ${hm(s)} — ${wdmy.format(en)} ${hm(en)}';
     }
 
     // Горизонтальный отступ — ВНУТРИ ScrollView, чтобы десктопный скроллбар

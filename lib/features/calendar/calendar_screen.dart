@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../app/keymap.dart';
 import '../../app/providers.dart';
@@ -801,16 +802,6 @@ class _TopBar extends ConsumerWidget {
   }
 }
 
-const _kMonthsNom = [
-  'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
-  'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'
-];
-const _kMonthsGen = [
-  'янв', 'фев', 'мар', 'апр', 'мая', 'июн',
-  'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'
-];
-const _kWeekdays = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
-
 /// Заголовок периода: в дне — «ср, 17 июн», в неделе — «14–20 июн»,
 /// в месяце — «июнь 2026». Чётко показывает, на что смотрит пользователь.
 class _PeriodTitle extends ConsumerWidget {
@@ -823,19 +814,21 @@ class _PeriodTitle extends ConsumerWidget {
     final isToday =
         d.year == now.year && d.month == now.month && d.day == now.day;
 
+    // Форматирование по активной локали (intl) — символы дат грузит
+    // GlobalMaterialLocalizations при установленной локали MaterialApp.
+    final loc = Localizations.localeOf(context).toString();
+    final dayMon = DateFormat.MMMd(loc); // «17 июн» / «Jun 17»
     String text;
     switch (mode) {
       case CalendarViewMode.day:
-        text = '${_kWeekdays[d.weekday - 1]}, ${d.day} ${_kMonthsGen[d.month - 1]}';
+        text = DateFormat.MMMEd(loc).format(d); // «ср, 17 июн» / «Wed, Jun 17»
         if (isToday) text = '${L10n.of(context).calToday} · $text';
       case CalendarViewMode.week:
         final s = weekStart(d);
         final e = s.add(const Duration(days: 6));
-        text = s.month == e.month
-            ? '${s.day}–${e.day} ${_kMonthsGen[s.month - 1]}'
-            : '${s.day} ${_kMonthsGen[s.month - 1]} – ${e.day} ${_kMonthsGen[e.month - 1]}';
+        text = '${dayMon.format(s)} – ${dayMon.format(e)}';
       default:
-        text = '${_kMonthsNom[d.month - 1]} ${d.year}';
+        text = DateFormat.yMMMM(loc).format(d); // «июнь 2026» / «June 2026»
     }
     return Text(text,
         overflow: TextOverflow.ellipsis,

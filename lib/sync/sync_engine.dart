@@ -370,6 +370,8 @@ class SyncEngine {
                   ? RecurrenceScope.values[idx]
                   : RecurrenceScope.all;
               await provider.deleteEvent(acc, event, scope);
+              // Удалить и внешнюю видеовстречу (Zoom standalone) — best-effort.
+              await _provisioner.deleteConference(event.conference);
               await events.hardDelete(event.id);
             }
           case 'rsvp':

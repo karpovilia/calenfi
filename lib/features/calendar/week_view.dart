@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/merged_event.dart';
+import '../../l10n/app_localizations.dart';
 import 'calendar_state.dart';
 import 'time_grid.dart';
 
@@ -24,7 +25,8 @@ class WeekView extends ConsumerWidget {
         Expanded(
           child: eventsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Ошибка: $e')),
+            error: (e, _) =>
+                Center(child: Text(L10n.of(context).uiError('$e'))),
             data: (events) => TimeGrid(
               days: days,
               events: events,

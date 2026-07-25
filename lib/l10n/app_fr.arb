@@ -217,5 +217,17 @@
   "setShowMonth": "Afficher la vue mensuelle",
   "setShowMonthSubtitle": "Sur téléphone, le mois est à l'étroit — vous pouvez le masquer",
   "setTitle": "Paramètres",
-  "setView": "Affichage"
+  "setView": "Affichage",
+  "uiCancel": "Annuler",
+  "uiError": "Erreur : {error}",
+  "uiMove": "Déplacer",
+  "uiMoveEventBody": "«{title}»\n\n{range}",
+  "uiMoveEventTitle": "Déplacer l'événement ?",
+  "uiNoTitle": "Sans titre",
+  "uiNotUpdated": "Non mis à jour : {accounts}",
+  "uiReasonAuthError": "erreur d'authentification",
+  "uiReasonFailure": "échec",
+  "uiReasonNeedsReconnect": "reconnexion",
+  "uiReasonOffline": "hors ligne",
+  "uiRetry": "Réessayer"
 }

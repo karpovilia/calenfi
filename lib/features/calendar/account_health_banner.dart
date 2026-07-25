@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../domain/models/account.dart';
 import '../../domain/models/enums.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Жирная плашка сверху, если какой-то отображаемый аккаунт **отвалился**
 /// (после 3 попыток синка) или **нет сети** — критично, чтобы пользователь
@@ -13,6 +14,7 @@ class AccountHealthBanner extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = L10n.of(context);
     final accountsAsync = ref.watch(accountsStreamProvider);
     final accounts = accountsAsync.value ?? const <Account>[];
     final unhealthy = accounts.where((a) => !a.isHealthy).toList();
@@ -34,7 +36,8 @@ class AccountHealthBanner extends ConsumerWidget {
               const SizedBox(width: 7),
               Expanded(
                 child: Text(
-                  'Не обновилось: ${unhealthy.map(_line).join(', ')}',
+                  l10n.uiNotUpdated(
+                      unhealthy.map((a) => _line(a, l10n)).join(', ')),
                   style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -45,10 +48,10 @@ class AccountHealthBanner extends ConsumerWidget {
               ),
               InkWell(
                 onTap: () => ref.read(syncTriggerProvider)(),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  child: Text('Повторить',
-                      style: TextStyle(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  child: Text(l10n.uiRetry,
+                      style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.bold)),
@@ -62,12 +65,12 @@ class AccountHealthBanner extends ConsumerWidget {
   }
 
   /// Короткая метка: «Имя (причина)» — без времени, чтобы плашка была узкой.
-  String _line(Account a) {
+  String _line(Account a, L10n l10n) {
     final what = switch (a.status) {
-      AccountStatus.offline => 'нет сети',
-      AccountStatus.authError => 'ошибка авторизации',
-      AccountStatus.needsReconnect => 'переподключение',
-      _ => 'сбой',
+      AccountStatus.offline => l10n.uiReasonOffline,
+      AccountStatus.authError => l10n.uiReasonAuthError,
+      AccountStatus.needsReconnect => l10n.uiReasonNeedsReconnect,
+      _ => l10n.uiReasonFailure,
     };
     return '${a.displayName} ($what)';
   }

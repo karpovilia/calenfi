@@ -751,4 +751,46 @@ class L10nEn extends L10n {
 
   @override
   String get setView => 'View';
+
+  @override
+  String get uiCancel => 'Cancel';
+
+  @override
+  String uiError(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get uiMove => 'Move';
+
+  @override
+  String uiMoveEventBody(String title, String range) {
+    return '«$title»\n\n$range';
+  }
+
+  @override
+  String get uiMoveEventTitle => 'Move event?';
+
+  @override
+  String get uiNoTitle => 'Untitled';
+
+  @override
+  String uiNotUpdated(String accounts) {
+    return 'Not updated: $accounts';
+  }
+
+  @override
+  String get uiReasonAuthError => 'auth error';
+
+  @override
+  String get uiReasonFailure => 'failure';
+
+  @override
+  String get uiReasonNeedsReconnect => 'reconnecting';
+
+  @override
+  String get uiReasonOffline => 'no network';
+
+  @override
+  String get uiRetry => 'Retry';
 }

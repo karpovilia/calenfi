@@ -212,6 +212,54 @@ class ConferenceProvisioner {
     }
   }
 
+  /// Best-effort удаление внешне заведённой видеовстречи при удалении события.
+  /// Для Zoom (standalone) вызывает DELETE /v2/meetings/{id}. Для Teams/Meet
+  /// встреча живёт в самом событии и уходит вместе с ним; Telemost API удаления
+  /// не имеет. Ошибки глотаем — удаление события уже произошло.
+  Future<void> deleteConference(Conference? conf) async {
+    if (conf == null ||
+        conf.type != ConferenceType.zoom ||
+        conf.meetingId == null) {
+      return;
+    }
+    try {
+      final at = await _zoomToken();
+      if (at == null) return;
+      await _dio.delete(
+        'https://api.zoom.us/v2/meetings/${conf.meetingId}',
+        options: Options(headers: {'Authorization': 'Bearer $at'}),
+      );
+    } on Object {/* best-effort: событие уже удалено */}
+  }
+
+  /// Zoom Server-to-Server access-токен (grant account_credentials). null, если
+  /// ключи не заданы или обмен не удался.
+  Future<String?> _zoomToken() async {
+    final accountId = _creds.zoomAccountId;
+    final clientId = _creds.zoomClientId;
+    final clientSecret = _creds.zoomClientSecret;
+    if (accountId == null || clientId == null || clientSecret == null) {
+      return null;
+    }
+    try {
+      final basic = base64Encode(utf8.encode('$clientId:$clientSecret'));
+      final tok = await _dio.post(
+        'https://zoom.us/oauth/token',
+        queryParameters: {
+          'grant_type': 'account_credentials',
+          'account_id': accountId,
+        },
+        options: Options(
+          headers: {'Authorization': 'Basic $basic'},
+          contentType: Headers.formUrlEncodedContentType,
+        ),
+      );
+      return (tok.data as Map)['access_token'] as String?;
+    } on Object {
+      return null;
+    }
+  }
+
   /// Zoom через Server-to-Server OAuth: получаем access-токен по
   /// account_credentials, затем создаём запланированную встречу.
   Future<Conference> _zoom(

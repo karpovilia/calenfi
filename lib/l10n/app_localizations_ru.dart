@@ -765,4 +765,46 @@ class L10nRu extends L10n {
 
   @override
   String get setView => 'Вид';
+
+  @override
+  String get uiCancel => 'Отмена';
+
+  @override
+  String uiError(String error) {
+    return 'Ошибка: $error';
+  }
+
+  @override
+  String get uiMove => 'Перенести';
+
+  @override
+  String uiMoveEventBody(String title, String range) {
+    return '«$title»\n\n$range';
+  }
+
+  @override
+  String get uiMoveEventTitle => 'Перенести встречу?';
+
+  @override
+  String get uiNoTitle => 'Без названия';
+
+  @override
+  String uiNotUpdated(String accounts) {
+    return 'Не обновилось: $accounts';
+  }
+
+  @override
+  String get uiReasonAuthError => 'ошибка авторизации';
+
+  @override
+  String get uiReasonFailure => 'сбой';
+
+  @override
+  String get uiReasonNeedsReconnect => 'переподключение';
+
+  @override
+  String get uiReasonOffline => 'нет сети';
+
+  @override
+  String get uiRetry => 'Повторить';
 }

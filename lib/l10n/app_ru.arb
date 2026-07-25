@@ -217,5 +217,17 @@
   "setShowMonth": "Показывать месячный вид",
   "setShowMonthSubtitle": "На телефоне месяц тесный — можно убрать",
   "setTitle": "Настройки",
-  "setView": "Вид"
+  "setView": "Вид",
+  "uiCancel": "Отмена",
+  "uiError": "Ошибка: {error}",
+  "uiMove": "Перенести",
+  "uiMoveEventBody": "«{title}»\n\n{range}",
+  "uiMoveEventTitle": "Перенести встречу?",
+  "uiNoTitle": "Без названия",
+  "uiNotUpdated": "Не обновилось: {accounts}",
+  "uiReasonAuthError": "ошибка авторизации",
+  "uiReasonFailure": "сбой",
+  "uiReasonNeedsReconnect": "переподключение",
+  "uiReasonOffline": "нет сети",
+  "uiRetry": "Повторить"
 }

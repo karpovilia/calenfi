@@ -402,5 +402,41 @@
   "setShowMonth": "Show month view",
   "setShowMonthSubtitle": "The month is cramped on a phone — you can hide it",
   "setTitle": "Settings",
-  "setView": "View"
+  "setView": "View",
+  "uiCancel": "Cancel",
+  "uiError": "Error: {error}",
+  "@uiError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "uiMove": "Move",
+  "uiMoveEventBody": "«{title}»\n\n{range}",
+  "@uiMoveEventBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "uiMoveEventTitle": "Move event?",
+  "uiNoTitle": "Untitled",
+  "uiNotUpdated": "Not updated: {accounts}",
+  "@uiNotUpdated": {
+    "placeholders": {
+      "accounts": {
+        "type": "String"
+      }
+    }
+  },
+  "uiReasonAuthError": "auth error",
+  "uiReasonFailure": "failure",
+  "uiReasonNeedsReconnect": "reconnecting",
+  "uiReasonOffline": "no network",
+  "uiRetry": "Retry"
 }

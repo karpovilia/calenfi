@@ -1412,6 +1412,78 @@ abstract class L10n {
   /// In en, this message translates to:
   /// **'View'**
   String get setView;
+
+  /// No description provided for @uiCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get uiCancel;
+
+  /// No description provided for @uiError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String uiError(String error);
+
+  /// No description provided for @uiMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get uiMove;
+
+  /// No description provided for @uiMoveEventBody.
+  ///
+  /// In en, this message translates to:
+  /// **'«{title}»\n\n{range}'**
+  String uiMoveEventBody(String title, String range);
+
+  /// No description provided for @uiMoveEventTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Move event?'**
+  String get uiMoveEventTitle;
+
+  /// No description provided for @uiNoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled'**
+  String get uiNoTitle;
+
+  /// No description provided for @uiNotUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Not updated: {accounts}'**
+  String uiNotUpdated(String accounts);
+
+  /// No description provided for @uiReasonAuthError.
+  ///
+  /// In en, this message translates to:
+  /// **'auth error'**
+  String get uiReasonAuthError;
+
+  /// No description provided for @uiReasonFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'failure'**
+  String get uiReasonFailure;
+
+  /// No description provided for @uiReasonNeedsReconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'reconnecting'**
+  String get uiReasonNeedsReconnect;
+
+  /// No description provided for @uiReasonOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'no network'**
+  String get uiReasonOffline;
+
+  /// No description provided for @uiRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get uiRetry;
 }
 
 class _L10nDelegate extends LocalizationsDelegate<L10n> {

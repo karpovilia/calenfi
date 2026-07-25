@@ -217,5 +217,17 @@
   "setShowMonth": "显示月视图",
   "setShowMonthSubtitle": "手机上月视图较拥挤，可以隐藏",
   "setTitle": "设置",
-  "setView": "视图"
+  "setView": "视图",
+  "uiCancel": "取消",
+  "uiError": "错误：{error}",
+  "uiMove": "移动",
+  "uiMoveEventBody": "«{title}»\n\n{range}",
+  "uiMoveEventTitle": "移动事件？",
+  "uiNoTitle": "无标题",
+  "uiNotUpdated": "未更新：{accounts}",
+  "uiReasonAuthError": "认证错误",
+  "uiReasonFailure": "故障",
+  "uiReasonNeedsReconnect": "重新连接",
+  "uiReasonOffline": "无网络",
+  "uiRetry": "重试"
 }

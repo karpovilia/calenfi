@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/calendar_event.dart';
 import '../../domain/models/merged_event.dart';
+import '../../l10n/app_localizations.dart';
 import '../event_editor/event_editor_screen.dart';
 import 'calendar_state.dart' show moveModeProvider, commitDelayProvider;
 import 'event_block.dart';
@@ -509,6 +510,7 @@ class _TimeGridState extends ConsumerState<TimeGrid> {
 
   Future<bool> _confirmMove(
       String title, DateTime newStart, DateTime newEnd) async {
+    final l10n = L10n.of(context);
     const wd = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
     String two(int v) => v.toString().padLeft(2, '0');
     String when(DateTime d) =>
@@ -516,17 +518,17 @@ class _TimeGridState extends ConsumerState<TimeGrid> {
     final res = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Перенести встречу?'),
-        content: Text(
-            '«${title.isEmpty ? 'Без названия' : title}»\n\n'
-            '${when(newStart)} – ${two(newEnd.hour)}:${two(newEnd.minute)}'),
+        title: Text(l10n.uiMoveEventTitle),
+        content: Text(l10n.uiMoveEventBody(
+            title.isEmpty ? l10n.uiNoTitle : title,
+            '${when(newStart)} – ${two(newEnd.hour)}:${two(newEnd.minute)}')),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Отмена')),
+              child: Text(l10n.uiCancel)),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Перенести')),
+              child: Text(l10n.uiMove)),
         ],
       ),
     );

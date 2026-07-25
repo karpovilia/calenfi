@@ -755,4 +755,46 @@ class L10nFr extends L10n {
 
   @override
   String get setView => 'Affichage';
+
+  @override
+  String get uiCancel => 'Annuler';
+
+  @override
+  String uiError(String error) {
+    return 'Erreur : $error';
+  }
+
+  @override
+  String get uiMove => 'Déplacer';
+
+  @override
+  String uiMoveEventBody(String title, String range) {
+    return '«$title»\n\n$range';
+  }
+
+  @override
+  String get uiMoveEventTitle => 'Déplacer l\'événement ?';
+
+  @override
+  String get uiNoTitle => 'Sans titre';
+
+  @override
+  String uiNotUpdated(String accounts) {
+    return 'Non mis à jour : $accounts';
+  }
+
+  @override
+  String get uiReasonAuthError => 'erreur d\'authentification';
+
+  @override
+  String get uiReasonFailure => 'échec';
+
+  @override
+  String get uiReasonNeedsReconnect => 'reconnexion';
+
+  @override
+  String get uiReasonOffline => 'hors ligne';
+
+  @override
+  String get uiRetry => 'Réessayer';
 }

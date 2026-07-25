@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-07-25
+
+### Added
+- **Interface localization** in six languages — English, Russian, Spanish,
+  German, Chinese, French — with a **Settings → Language** switcher (system
+  default + the six languages, persisted per device). ~230 strings across the
+  calendar, settings, accounts, event editor, event details, recurrence and
+  status screens. Dates (period title, event schedule) are now formatted per
+  locale via `intl`.
+- **Zoom (Server-to-Server OAuth)** video conferences: choose Zoom in an event
+  to create a real meeting; deleting the event also deletes the Zoom meeting
+  (when the delete scope is granted).
+
+### Changed
+- Video-conference field lists the host **account** (email) + service with a
+  (+) to connect one; the meeting is created from the chosen account.
+- Attendee suggestions sort by usage frequency, then alphabetically.
+- Removed the separate meeting-room field.
+
+### Fixed
+- Exchange (EWS) delete tolerates "already deleted" so it can't stick forever;
+  a **manual sync resets outbox retry counters**, so edits that failed under a
+  since-fixed credential re-push instead of staying stuck.
+
 ## [0.2.1] — 2026-07-25
 
 ### Added
@@ -98,7 +122,8 @@ First public release.
   (libsecret / Keychain / DPAPI), with an encrypted-at-rest file fallback and
   `flutter_secure_storage` on mobile.
 
-[Unreleased]: https://github.com/karpovilia/calenfi/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/karpovilia/calenfi/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/karpovilia/calenfi/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/karpovilia/calenfi/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/karpovilia/calenfi/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/karpovilia/calenfi/compare/v0.1.0...v0.1.1

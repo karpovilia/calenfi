@@ -421,6 +421,7 @@ Future<void> _pushOutbox(EventRepository events, AccountRepository accounts,
           await provider.updateEvent(acc, e);
         case 'delete':
           await provider.deleteEvent(acc, e, RecurrenceScope.all);
+          await provisioner.deleteConference(e.conference); // Zoom standalone
           await events.hardDelete(e.id);
         case 'rsvp':
           final m = RegExp(r'"resp"\s*:\s*(\d+)').firstMatch(item.payloadJson);

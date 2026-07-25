@@ -217,5 +217,17 @@
   "setShowMonth": "Mostrar vista de mes",
   "setShowMonthSubtitle": "En el teléfono el mes queda apretado; puedes ocultarlo",
   "setTitle": "Ajustes",
-  "setView": "Vista"
+  "setView": "Vista",
+  "uiCancel": "Cancelar",
+  "uiError": "Error: {error}",
+  "uiMove": "Mover",
+  "uiMoveEventBody": "«{title}»\n\n{range}",
+  "uiMoveEventTitle": "¿Mover evento?",
+  "uiNoTitle": "Sin título",
+  "uiNotUpdated": "No actualizado: {accounts}",
+  "uiReasonAuthError": "error de autenticación",
+  "uiReasonFailure": "fallo",
+  "uiReasonNeedsReconnect": "reconexión",
+  "uiReasonOffline": "sin conexión",
+  "uiRetry": "Reintentar"
 }

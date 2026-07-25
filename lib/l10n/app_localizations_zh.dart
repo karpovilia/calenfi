@@ -739,4 +739,46 @@ class L10nZh extends L10n {
 
   @override
   String get setView => '视图';
+
+  @override
+  String get uiCancel => '取消';
+
+  @override
+  String uiError(String error) {
+    return '错误：$error';
+  }
+
+  @override
+  String get uiMove => '移动';
+
+  @override
+  String uiMoveEventBody(String title, String range) {
+    return '«$title»\n\n$range';
+  }
+
+  @override
+  String get uiMoveEventTitle => '移动事件？';
+
+  @override
+  String get uiNoTitle => '无标题';
+
+  @override
+  String uiNotUpdated(String accounts) {
+    return '未更新：$accounts';
+  }
+
+  @override
+  String get uiReasonAuthError => '认证错误';
+
+  @override
+  String get uiReasonFailure => '故障';
+
+  @override
+  String get uiReasonNeedsReconnect => '重新连接';
+
+  @override
+  String get uiReasonOffline => '无网络';
+
+  @override
+  String get uiRetry => '重试';
 }
