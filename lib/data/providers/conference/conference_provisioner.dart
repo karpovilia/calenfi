@@ -31,12 +31,18 @@ class ConferenceUnavailableException implements Exception {
 ///    календаря при createEvent, без отдельных прав;
 ///  • иначе (кросс-аккаунт) — заводим отдельным API нужной УЗ.
 class ConferenceProvisioner {
-  ConferenceProvisioner({Dio? dio, CredentialSource? credentials})
+  ConferenceProvisioner(
+      {Dio? dio, CredentialSource? credentials, String? telemostBaseUrl})
       : _dio = dio ?? Dio(),
-        _creds = credentials ?? CredentialSource.load();
+        _creds = credentials ?? CredentialSource.load(),
+        _telemostBaseUrl =
+            telemostBaseUrl ?? 'https://api.telemost.yandex.ru/v1/conferences';
 
   final Dio _dio;
   final CredentialSource _creds;
+
+  /// База Telemost API (переопределяется в тестах).
+  final String _telemostBaseUrl;
 
   /// Умеет ли провайдер календаря [target] завести конференцию [type] нативно
   /// в самом событии (без отдельного API/прав): Graph→Teams, Google→Meet.
@@ -268,9 +274,44 @@ class ConferenceProvisioner {
     }
   }
 
+  /// Yandex Telemost: POST /v1/conferences с OAuth-токеном (scope
+  /// `telemost-api:conferences.create`). Токен кладётся в keyring под
+  /// `TELEMOST_OAUTH_TOKEN` (через подключение Telemost в приложении или
+  /// `tools/calenfi secret-set`).
   Future<Conference> _telemost() async {
-    throw ConferenceUnavailableException(
-        'Telemost пока не настроен: нужен Yandex OAuth '
-        'со scope telemost-api:conferences.create');
+    final token = _creds.telemostToken;
+    if (token == null) {
+      throw ConferenceUnavailableException(
+          'Telemost не подключён: нужен Yandex OAuth-токен (Учётные записи → '
+          'Добавить → Telemost, либо secret-set TELEMOST_OAUTH_TOKEN).');
+    }
+    try {
+      final resp = await _dio.post(
+        _telemostBaseUrl,
+        data: {'waiting_room_level': 'PUBLIC'},
+        options: Options(
+          headers: {'Authorization': 'OAuth $token'},
+          contentType: Headers.jsonContentType,
+        ),
+      );
+      final m = resp.data as Map<String, dynamic>;
+      final url = m['join_url'] as String?;
+      if (url == null || url.isEmpty) {
+        throw ConferenceUnavailableException('Telemost не вернул join_url');
+      }
+      return Conference(
+        type: ConferenceType.telemost,
+        joinUrl: url,
+        meetingId: m['id']?.toString(),
+      );
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) {
+        throw ConferenceUnavailableException(
+            'Telemost: токен недействителен или нет scope '
+            'telemost-api:conferences.create — переподключи Telemost');
+      }
+      throw ConferenceUnavailableException('Telemost: ошибка $code');
+    }
   }
 }

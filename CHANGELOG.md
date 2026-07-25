@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Yandex Telemost** video conferences: create a real meeting link via the
+  Telemost API. Connect once in Accounts → Add → Telemost (Yandex OAuth); needs
+  a Yandex app with "Telemost API" access.
+
 ## [0.2.0] — 2026-07-25
 
 ### Added

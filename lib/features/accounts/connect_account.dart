@@ -128,6 +128,31 @@ class ConnectAccountService {
     return email;
   }
 
+  /// Подключить Yandex Telemost (создание видеовстреч): OAuth со scope
+  /// `telemost-api:conferences.create` → токен в keyring. Требует
+  /// зарегистрированного Yandex-приложения (YANDEX_OAUTH_CLIENT_ID/SECRET,
+  /// redirect http://localhost).
+  Future<void> connectTelemost() async {
+    final creds = CredentialSource.load();
+    final clientId = creds.yandexClientId;
+    final clientSecret = creds.yandexClientSecret;
+    if (clientId == null || clientSecret == null) {
+      throw OAuthException(
+          'Telemost OAuth не настроен: задайте YANDEX_OAUTH_CLIENT_ID и '
+          'YANDEX_OAUTH_CLIENT_SECRET (oauth.yandex.ru, приложение с доступом '
+          '«Telemost API», redirect http://localhost).');
+    }
+    final res = await OAuthFlow().run(
+      authorizationEndpoint: 'https://oauth.yandex.ru/authorize',
+      tokenEndpoint: 'https://oauth.yandex.ru/token',
+      clientId: clientId,
+      clientSecret: clientSecret,
+      scopes: const ['telemost-api:conferences.create'],
+      launch: _openBrowser,
+    );
+    await SecretStore.instance.write('TELEMOST_OAUTH_TOKEN', res.accessToken);
+  }
+
   /// Подключить CalDAV (Yandex и совместимые) по паролю приложения.
   Future<void> connectCaldav({
     required String email,

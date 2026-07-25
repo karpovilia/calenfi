@@ -35,6 +35,9 @@ class _AddAccountSheet extends ConsumerWidget {
               'Пароль приложения', () => _caldav(context, ref)),
           _tile(context, Icons.dns_outlined, 'Exchange (EWS)',
               'Логин и пароль', () => _ews(context, ref)),
+          const Divider(),
+          _tile(context, Icons.videocam_outlined, 'Telemost (видеовстречи)',
+              'Вход через браузер', () => _telemost(context, ref)),
           const SizedBox(height: 12),
         ],
       ),
@@ -60,6 +63,21 @@ class _AddAccountSheet extends ConsumerWidget {
     Navigator.pop(context);
     await _runOAuth(context, ref, 'Microsoft',
         () => ref.read(connectAccountServiceProvider).connectMicrosoft());
+  }
+
+  Future<void> _telemost(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context);
+    messenger.showSnackBar(const SnackBar(
+        content: Text('Telemost: завершите вход в открывшемся браузере…'),
+        duration: Duration(seconds: 8)));
+    try {
+      await ref.read(connectAccountServiceProvider).connectTelemost();
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Telemost подключён')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Не удалось: $e')));
+    }
   }
 
   Future<void> _caldav(BuildContext context, WidgetRef ref) async {

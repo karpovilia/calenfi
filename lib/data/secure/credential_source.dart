@@ -63,6 +63,14 @@ class CredentialSource {
   String? get graphClientId => _nonEmpty(_values['GRAPH_CLIENT_ID']);
   String get graphTenant => _nonEmpty(_values['GRAPH_TENANT']) ?? 'common';
 
+  /// Yandex Telemost: OAuth-токен со scope `telemost-api:conferences.create`
+  /// (создание видеовстреч) и, опционально, OAuth-клиент для получения токена
+  /// прямо в приложении.
+  String? get telemostToken => _nonEmpty(_values['TELEMOST_OAUTH_TOKEN']);
+  String? get yandexClientId => _nonEmpty(_values['YANDEX_OAUTH_CLIENT_ID']);
+  String? get yandexClientSecret =>
+      _nonEmpty(_values['YANDEX_OAUTH_CLIENT_SECRET']);
+
   static String? _nonEmpty(String? v) => (v == null || v.isEmpty) ? null : v;
 }
 
