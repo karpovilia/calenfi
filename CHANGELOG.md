@@ -18,8 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   providers (Yandex / Exchange) get a proper form screen with a busy indicator,
   and the account is saved immediately while the first sync runs in the
   background — so connecting no longer looks like "nothing happened".
-- **Real app icon** on Android (adaptive icon + all densities) instead of the
-  default Flutter logo.
+- **Real app icon** on every platform (Android adaptive icon, macOS app icon,
+  Windows `.ico`, Linux hicolor icon + `.desktop`) instead of the default
+  Flutter logo.
 
 ## [0.2.0] — 2026-07-25
 

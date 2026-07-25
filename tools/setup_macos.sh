@@ -49,12 +49,6 @@ patch_entitlements () {
   "$PB" -c "Delete :com.apple.security.network.client" "$f" 2>/dev/null || true
   "$PB" -c "Add :com.apple.security.network.client bool true" "$f"
 
-  # App-sandbox ВЫКЛ: приложение вызывает `security` (Keychain) для секретов и
-  # пишет конфиг в ~/Library/Application Support/calenfi — из песочницы это
-  # недоступно. Распространяем вне App Store (ad-hoc подпись), так что можно.
-  "$PB" -c "Delete :com.apple.security.app-sandbox" "$f" 2>/dev/null || true
-  "$PB" -c "Add :com.apple.security.app-sandbox bool false" "$f"
-
   # Доступ к Keychain для flutter_secure_storage под app-sandbox.
   "$PB" -c "Delete :keychain-access-groups" "$f" 2>/dev/null || true
   "$PB" -c "Add :keychain-access-groups array" "$f"
@@ -62,6 +56,16 @@ patch_entitlements () {
 }
 patch_entitlements macos/Runner/DebugProfile.entitlements
 patch_entitlements macos/Runner/Release.entitlements
+
+# --- 2b. Иконка приложения ---------------------------------------------------
+# flutter create кладёт дефолтную иконку — подменяем нашей (tools/icon/macos).
+ICONSET="tools/icon/macos/AppIcon.appiconset"
+DEST="macos/Runner/Assets.xcassets/AppIcon.appiconset"
+if [[ -d "$ICONSET" && -d "$(dirname "$DEST")" ]]; then
+  echo "==> Ставлю иконку приложения (macOS)"
+  rm -f "$DEST"/*.png
+  cp "$ICONSET"/*.png "$ICONSET"/Contents.json "$DEST"/
+fi
 
 # --- 3. Зависимости + кодоген -------------------------------------------------
 echo "==> flutter pub get"
