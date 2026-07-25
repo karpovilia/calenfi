@@ -59,7 +59,7 @@ patch_entitlements macos/Runner/Release.entitlements
 
 # --- 2b. Иконка приложения ---------------------------------------------------
 # flutter create кладёт дефолтную иконку — подменяем нашей (tools/icon/macos).
-ICONSET="tools/icon/macos/AppIcon.appiconset"
+ICONSET="tools/icon/macos_appicon/AppIcon.appiconset"
 DEST="macos/Runner/Assets.xcassets/AppIcon.appiconset"
 if [[ -d "$ICONSET" && -d "$(dirname "$DEST")" ]]; then
   echo "==> Ставлю иконку приложения (macOS)"
