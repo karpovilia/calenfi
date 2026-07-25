@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="sh" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="22" flood-color="#000000" flood-opacity="0.20"/>
+    </filter>
+  </defs>
+  <!-- adaptive foreground: глиф в safe-zone (~62% центра, 108dp → ~66dp) -->
+  <g transform="translate(512,512) scale(0.60) translate(-512,-512)">
+    <g filter="url(#sh)">
+      <rect x="212" y="248" width="600" height="560" rx="72" fill="#FFFFFF"/>
+      <path d="M212 320 a72 72 0 0 1 72 -72 h456 a72 72 0 0 1 72 72 v56 H212 Z" fill="#EEF0FF"/>
+    </g>
+    <g fill="#3B3F8F">
+      <rect x="336" y="196" width="40" height="108" rx="20"/>
+      <rect x="648" y="196" width="40" height="108" rx="20"/>
+    </g>
+    <g>
+      <circle cx="322" cy="470" r="34" fill="#E5457A"/>
+      <circle cx="462" cy="470" r="34" fill="#E8EAF5"/>
+      <circle cx="602" cy="470" r="34" fill="#33B27B"/>
+      <circle cx="702" cy="470" r="34" fill="#E8EAF5"/>
+      <circle cx="322" cy="600" r="34" fill="#E8EAF5"/>
+      <rect x="416" y="554" width="92" height="92" rx="30" fill="#5B6CF0"/>
+      <circle cx="602" cy="600" r="34" fill="#F4A63B"/>
+      <circle cx="702" cy="600" r="34" fill="#E8EAF5"/>
+      <circle cx="322" cy="700" r="34" fill="#E8EAF5"/>
+      <circle cx="462" cy="700" r="34" fill="#E8EAF5"/>
+      <circle cx="602" cy="700" r="34" fill="#E8EAF5"/>
+    </g>
+  </g>
+</svg>
