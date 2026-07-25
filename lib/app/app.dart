@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../features/calendar/calendar_screen.dart';
 import '../features/notifications/notification_sync.dart';
 import '../features/widget/agenda_widget_service.dart';
 import 'bootstrap.dart';
+import 'locale_provider.dart';
 import 'providers.dart';
 import 'theme.dart';
 
@@ -20,6 +22,9 @@ class CalenfiApp extends ConsumerWidget {
       title: 'Calenfi',
       debugShowCheckedModeBanner: false,
       theme: buildDarkTheme(),
+      locale: ref.watch(localeProvider),
+      localizationsDelegates: L10n.localizationsDelegates,
+      supportedLocales: L10n.supportedLocales,
       home: const _Bootstrap(child: CalendarScreen()),
     );
   }

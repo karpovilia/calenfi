@@ -12,6 +12,7 @@ import '../../domain/models/account.dart';
 import '../../domain/models/conference.dart';
 import '../../domain/models/enums.dart';
 import '../../data/secure/credential_source.dart';
+import '../../l10n/app_localizations.dart';
 import '../accounts/add_account_sheet.dart';
 import '../calendar/calendar_state.dart';
 import '../calendar/pending_edits.dart';
@@ -134,6 +135,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
     final all = ref.watch(calendarsListProvider).value ?? const <Calendar>[];
     // Только видимые и доступные для записи календари: в скрытый или read-only
     // календарь событие создать нельзя (FR-A8).
@@ -151,7 +153,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
           child: Row(
             children: [
-              Text(_isNew ? 'Новое событие' : 'Изменить событие',
+              Text(_isNew ? l10n.edNewEvent : l10n.edEditEvent,
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold)),
               const Spacer(),
@@ -160,7 +162,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                   icon: const Icon(Icons.close)),
               FilledButton(
                 onPressed: cals.isEmpty ? null : () => _save(cals),
-                child: const Text('Готово'),
+                child: Text(l10n.edDone),
               ),
             ],
           ),
@@ -175,30 +177,31 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                 autofocus: _isNew,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _submitByEnter(cals),
-                decoration: const InputDecoration(hintText: 'Название'),
+                decoration: InputDecoration(hintText: l10n.edTitleHint),
                 style: const TextStyle(fontSize: 18),
               ),
               TextField(
                 controller: _location,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _submitByEnter(cals),
-                decoration: const InputDecoration(
-                    hintText: 'Место', icon: Icon(Icons.place_outlined)),
+                decoration: InputDecoration(
+                    hintText: l10n.edLocationHint,
+                    icon: const Icon(Icons.place_outlined)),
               ),
               const SizedBox(height: 8),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Весь день'),
+                title: Text(l10n.edAllDay),
                 value: _allDay,
                 onChanged: (v) => setState(() => _allDay = v),
               ),
-              _dateTimeRow('Начало', _start, (d) => setState(() {
+              _dateTimeRow(l10n.edStart, _start, (d) => setState(() {
                     _start = d;
                     if (_end.isBefore(_start)) {
                       _end = _start.add(const Duration(hours: 1));
                     }
                   })),
-              _dateTimeRow('Конец', _end, (d) => setState(() => _end = d)),
+              _dateTimeRow(l10n.edEnd, _end, (d) => setState(() => _end = d)),
               _recurrenceRow(),
               const Divider(height: 24),
               _calendarPicker(cals),
@@ -211,8 +214,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
               TextField(
                 controller: _notes,
                 maxLines: 4,
-                decoration: const InputDecoration(
-                    hintText: 'Заметки', icon: Icon(Icons.notes_outlined)),
+                decoration: InputDecoration(
+                    hintText: l10n.edNotesHint,
+                    icon: const Icon(Icons.notes_outlined)),
               ),
             ],
           ),
@@ -223,13 +227,14 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
 
   // --- invitees (FR-E9, FR-K3) ---
   Widget _inviteesSection() {
+    final l10n = L10n.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: const [
-          Icon(Icons.people_outline, size: 18, color: Colors.grey),
-          SizedBox(width: 8),
-          Text('Участники'),
+        Row(children: [
+          const Icon(Icons.people_outline, size: 18, color: Colors.grey),
+          const SizedBox(width: 8),
+          Text(l10n.edAttendees),
         ]),
         const SizedBox(height: 6),
         if (_attendees.isNotEmpty)
@@ -265,8 +270,8 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                 child: TextField(
                   controller: controller,
                   focusNode: focusNode,
-                  decoration: const InputDecoration(
-                      hintText: 'Имя из справочника или email',
+                  decoration: InputDecoration(
+                      hintText: l10n.edInviteeHint,
                       isDense: true),
                   onSubmitted: (v) {
                     // Есть подсказки → Enter выбирает выделенную (onSubmit →
@@ -343,14 +348,15 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   /// Повторение (FR-E6): диалог в стиле Outlook (см. recurrence_editor.dart).
   /// У экземпляра серии правило меняется только у мастера — строка заблокирована.
   Widget _recurrenceRow() {
+    final l10n = L10n.of(context);
     final isInstance = widget.existing?.recurrenceId != null;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.repeat),
-      title: const Text('Повторять'),
+      title: Text(l10n.edRepeat),
       subtitle: Text(isInstance
-          ? 'Экземпляр серии — правило у всей серии'
-          : describeRecurrence(_recurrenceRule)),
+          ? l10n.edSeriesInstance
+          : describeRecurrence(context, _recurrenceRule)),
       enabled: !isInstance,
       onTap: isInstance
           ? null
@@ -363,34 +369,43 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     );
   }
 
-  Widget _showAsRow() => ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.work_outline),
-        title: const Text('Показывать как'),
-        trailing: SegmentedButton<ShowAs>(
-          segments: const [
-            ButtonSegment(value: ShowAs.busy, label: Text('Занят')),
-            ButtonSegment(value: ShowAs.free, label: Text('Свободен')),
-          ],
-          selected: {_showAs},
-          onSelectionChanged: (s) => setState(() => _showAs = s.first),
-        ),
-      );
+  Widget _showAsRow() {
+    final l10n = L10n.of(context);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.work_outline),
+      title: Text(l10n.edShowAs),
+      trailing: SegmentedButton<ShowAs>(
+        segments: [
+          ButtonSegment(value: ShowAs.busy, label: Text(l10n.edBusy)),
+          ButtonSegment(value: ShowAs.free, label: Text(l10n.edFree)),
+        ],
+        selected: {_showAs},
+        onSelectionChanged: (s) => setState(() => _showAs = s.first),
+      ),
+    );
+  }
 
-  Widget _visibilityRow() => ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.visibility_outlined),
-        title: const Text('Видимость'),
-        trailing: DropdownButton<EventVisibility>(
-          value: _visibility,
-          onChanged: (v) => setState(() => _visibility = v!),
-          items: const [
-            DropdownMenuItem(value: EventVisibility.defaultVis, child: Text('По умолчанию')),
-            DropdownMenuItem(value: EventVisibility.private, child: Text('Приватно')),
-            DropdownMenuItem(value: EventVisibility.public, child: Text('Публично')),
-          ],
-        ),
-      );
+  Widget _visibilityRow() {
+    final l10n = L10n.of(context);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.visibility_outlined),
+      title: Text(l10n.edVisibility),
+      trailing: DropdownButton<EventVisibility>(
+        value: _visibility,
+        onChanged: (v) => setState(() => _visibility = v!),
+        items: [
+          DropdownMenuItem(
+              value: EventVisibility.defaultVis, child: Text(l10n.edVisDefault)),
+          DropdownMenuItem(
+              value: EventVisibility.private, child: Text(l10n.edVisPrivate)),
+          DropdownMenuItem(
+              value: EventVisibility.public, child: Text(l10n.edVisPublic)),
+        ],
+      ),
+    );
+  }
 
   /// Опции видеовстречи: каждая привязанная УЗ, умеющая хостить встречу, +
   /// сервисы по токену (Zoom/Telemost). Показываем АДРЕС УЗ (крупно) и сервис
@@ -416,6 +431,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   }
 
   Widget _conferenceRow() {
+    final l10n = L10n.of(context);
     final opts = _confOptions();
     final selectedKey = _conference == null
         ? null
@@ -423,13 +439,13 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.videocam_outlined),
-      title: const Text('Видеовстреча'),
+      title: Text(l10n.edConference),
       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
         DropdownButton<String?>(
           value: selectedKey,
-          hint: const Text('Нет'),
+          hint: Text(l10n.edNone),
           items: [
-            const DropdownMenuItem(value: null, child: Text('Нет')),
+            DropdownMenuItem(value: null, child: Text(l10n.edNone)),
             for (final o in opts)
               DropdownMenuItem(
                 value: o.key,
@@ -454,7 +470,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         ),
         // (+) — подключить новый конференц-аккаунт
         IconButton(
-          tooltip: 'Подключить аккаунт',
+          tooltip: l10n.edConnectAccount,
           icon: const Icon(Icons.add_circle_outline, size: 20),
           onPressed: () => openAddAccount(context),
         ),
@@ -465,7 +481,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   Widget _calendarPicker(List<Calendar> cals) => ListTile(
         contentPadding: EdgeInsets.zero,
         leading: const Icon(Icons.calendar_today_outlined),
-        title: const Text('Календарь'),
+        title: Text(L10n.of(context).edCalendar),
         trailing: DropdownButton<String>(
           value: _calendarId,
           onChanged: (v) => setState(() => _calendarId = v),
@@ -557,7 +573,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     final event = CalendarEvent(
       id: existing?.id ?? '',
       calendarId: cal.id,
-      title: _title.text.trim().isEmpty ? 'Без названия' : _title.text.trim(),
+      title: _title.text.trim().isEmpty
+          ? L10n.of(context).edUntitled
+          : _title.text.trim(),
       startUtc: _start.toUtc(),
       endUtc: _end.toUtc(),
       timeZoneId: existing?.timeZoneId ?? 'Europe/Moscow',

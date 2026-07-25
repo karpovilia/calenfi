@@ -12,6 +12,7 @@ import '../../domain/models/enums.dart';
 import '../../domain/models/merged_event.dart';
 import '../../domain/providers/provider_capabilities.dart';
 import '../../domain/usecases/event_actions.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/maps_service.dart';
 import '../event_editor/event_editor_screen.dart';
 import 'calendar_state.dart';
@@ -38,6 +39,7 @@ class _EventDetails extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final e = event.primary;
+    final l10n = L10n.of(context);
     final calInfo = ref.watch(calendarInfoProvider);
     final s = e.startUtc.toLocal();
     final en = e.endUtc.toLocal();
@@ -59,8 +61,8 @@ class _EventDetails extends ConsumerWidget {
           s.year == en.year && s.month == en.month && s.day == en.day;
       if (e.allDay) {
         return sameDay
-            ? '${wd[s.weekday - 1]}, ${dmy(s)} · весь день'
-            : '${dmy(s)} — ${dmy(en)} · весь день';
+            ? '${wd[s.weekday - 1]}, ${dmy(s)} · ${l10n.detAllDay}'
+            : '${dmy(s)} — ${dmy(en)} · ${l10n.detAllDay}';
       }
       if (sameDay) {
         return '${wd[s.weekday - 1]}, ${dmy(s)} · ${hm(s)} — ${hm(en)}';
@@ -104,28 +106,30 @@ class _EventDetails extends ConsumerWidget {
             if (e.room != null)
               _row(Icons.meeting_room_outlined,
                   e.room!.displayName ?? e.room!.email),
-            _row(Icons.event_available_outlined, _responseLabel(e.myResponse)),
-            if (e.isCancelled) _row(Icons.cancel_outlined, 'Отменено / удалено'),
+            _row(Icons.event_available_outlined,
+                _responseLabel(l10n, e.myResponse)),
+            if (e.isCancelled)
+              _row(Icons.cancel_outlined, l10n.detCancelledDeleted),
 
             // источник: из какого календаря вытянуто событие (FR-V10)
-            if (!event.isMerged) _calendarRow(calInfo[e.calendarId]),
+            if (!event.isMerged) _calendarRow(l10n, calInfo[e.calendarId]),
 
             // видеовстреча (FR-M2)
             if (meetingUrl != null) ...[
               const SizedBox(height: 12),
               _MeetingJoinRow(
-                  url: meetingUrl, label: _confLabel(meetingType)),
+                  url: meetingUrl, label: _confLabel(l10n, meetingType)),
             ],
 
             // источники склейки (FR-D3)
             if (event.isMerged) ...[
               const SizedBox(height: 14),
-              Text('В нескольких календарях (${event.sources.length}):',
+              Text(l10n.detInMultipleCalendars(event.sources.length),
                   style: const TextStyle(color: Colors.grey, fontSize: 12)),
               for (final src in event.sources)
-                _calendarRow(calInfo[src.calendarId],
+                _calendarRow(l10n, calInfo[src.calendarId],
                     fallback: src.calendarId,
-                    trailing: _responseLabel(src.myResponse)),
+                    trailing: _responseLabel(l10n, src.myResponse)),
             ],
 
             // участники-люди и их статусы подтверждения (FR-R3); переговорка
@@ -137,7 +141,7 @@ class _EventDetails extends ConsumerWidget {
                 return Row(children: [
                   const Icon(Icons.people_outline, size: 16, color: Colors.grey),
                   const SizedBox(width: 8),
-                  Text('Участники: ${e.people.length}  ·  принял${acc == 1 ? '' : 'и'} $acc',
+                  Text(l10n.detAttendeesCount(e.people.length, acc),
                       style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 ]);
               }),
@@ -158,10 +162,11 @@ class _EventDetails extends ConsumerWidget {
                 child: InkWell(
                   onTap: () => _launch(e.webUrl!),
                   child:
-                      _row(Icons.open_in_new, 'Открыть в облаке', link: true),
+                      _row(Icons.open_in_new, l10n.detOpenInCloud, link: true),
                 ),
               ),
-            _Copyable(value: e.id, child: _IdRow(label: 'ID', value: e.id)),
+            _Copyable(
+                value: e.id, child: _IdRow(label: l10n.detId, value: e.id)),
 
             const SizedBox(height: 16),
 
@@ -169,9 +174,12 @@ class _EventDetails extends ConsumerWidget {
             // (CalDAV пока нет; иначе нажатие молча падало в outbox).
             if (e.myResponse != ResponseStatus.organizer && _rsvpSupported(ref, e))
               Wrap(spacing: 8, children: [
-                _rsvpChip(context, ref, e, ResponseStatus.accepted, 'Принять'),
-                _rsvpChip(context, ref, e, ResponseStatus.tentative, 'Под вопросом'),
-                _rsvpChip(context, ref, e, ResponseStatus.declined, 'Отклонить'),
+                _rsvpChip(context, ref, e, ResponseStatus.accepted,
+                    l10n.detAccept),
+                _rsvpChip(context, ref, e, ResponseStatus.tentative,
+                    l10n.detTentative),
+                _rsvpChip(context, ref, e, ResponseStatus.declined,
+                    l10n.detDecline),
               ]),
 
             const SizedBox(height: 12),
@@ -184,14 +192,14 @@ class _EventDetails extends ConsumerWidget {
                   EventEditor.open(rootContext, existing: e);
                 },
                 icon: const Icon(Icons.edit_outlined),
-                label: const Text('Изменить'),
+                label: Text(l10n.detEdit),
               ),
               const SizedBox(width: 10),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
                 onPressed: () => _confirmAndDelete(context, ref, e),
                 icon: const Icon(Icons.delete_outline),
-                label: const Text('Удалить'),
+                label: Text(l10n.detDelete),
               ),
             ]),
           ],
@@ -241,8 +249,9 @@ class _EventDetails extends ConsumerWidget {
 }
 
 /// Строка «источник события»: цветной кружок календаря + «Имя · Аккаунт».
-Widget _calendarRow(CalendarInfo? info, {String? fallback, String? trailing}) {
-  final name = info?.name ?? fallback ?? 'Неизвестный календарь';
+Widget _calendarRow(L10n l10n, CalendarInfo? info,
+    {String? fallback, String? trailing}) {
+  final name = info?.name ?? fallback ?? l10n.detUnknownCalendar;
   final account = info?.accountName;
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
@@ -291,6 +300,7 @@ Widget _row(IconData icon, String text, {bool link = false, String? trailing}) =
 /// (это / это и последующие / вся серия), для одиночного — обычное
 /// подтверждение. Возвращает null, если пользователь отменил.
 Future<RecurrenceScope?> _askDeleteScope(BuildContext context, bool recurring) {
+  final l10n = L10n.of(context);
   if (!recurring) {
     return showDialog<RecurrenceScope?>(
       context: context,
@@ -307,15 +317,15 @@ Future<RecurrenceScope?> _askDeleteScope(BuildContext context, bool recurring) {
         child: Focus(
           autofocus: true,
           child: AlertDialog(
-            title: const Text('Удалить событие?'),
+            title: Text(l10n.detDeleteEventQ),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Отмена')),
+                  child: Text(l10n.detCancel)),
               TextButton(
                 style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
                 onPressed: () => Navigator.pop(ctx, RecurrenceScope.all),
-                child: const Text('Удалить'),
+                child: Text(l10n.detDelete),
               ),
             ],
           ),
@@ -339,34 +349,34 @@ Future<RecurrenceScope?> _askDeleteScope(BuildContext context, bool recurring) {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('Повторяющееся событие — что удалить?',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(l10n.detRecurringWhatDelete,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
           ListTile(
             leading: const Icon(Icons.event_busy_outlined),
-            title: const Text('Только это событие'),
+            title: Text(l10n.detThisEventOnly),
             onTap: () => Navigator.pop(ctx, RecurrenceScope.thisOnly),
           ),
           ListTile(
             leading: const Icon(Icons.arrow_forward),
-            title: const Text('Это и последующие'),
+            title: Text(l10n.detThisAndFollowing),
             onTap: () => Navigator.pop(ctx, RecurrenceScope.thisAndFollowing),
           ),
           ListTile(
             leading: const Icon(Icons.delete_sweep_outlined),
-            title: const Text('Всю серию'),
+            title: Text(l10n.detWholeSeries),
             textColor: Colors.redAccent,
             iconColor: Colors.redAccent,
             onTap: () => Navigator.pop(ctx, RecurrenceScope.all),
           ),
           ListTile(
             leading: const Icon(Icons.close),
-            title: const Text('Отмена'),
+            title: Text(l10n.detCancel),
             onTap: () => Navigator.pop(ctx),
           ),
         ],
@@ -491,20 +501,20 @@ bool _isOnlineMeetingName(String loc) {
   return names.any(s.contains);
 }
 
-String _confLabel(ConferenceType t) => switch (t) {
+String _confLabel(L10n l10n, ConferenceType t) => switch (t) {
       ConferenceType.meet => 'Google Meet',
       ConferenceType.teams => 'Teams',
       ConferenceType.zoom => 'Zoom',
       ConferenceType.telemost => 'Телемост',
-      ConferenceType.unknown => 'видеовстреча',
+      ConferenceType.unknown => l10n.detConfVideoCall,
     };
 
-String _responseLabel(ResponseStatus r) => switch (r) {
-      ResponseStatus.accepted => 'Принято',
-      ResponseStatus.declined => 'Отклонено',
-      ResponseStatus.tentative => 'Под вопросом',
-      ResponseStatus.needsAction => 'Ожидает ответа',
-      ResponseStatus.organizer => 'Вы организатор',
+String _responseLabel(L10n l10n, ResponseStatus r) => switch (r) {
+      ResponseStatus.accepted => l10n.detResponseAccepted,
+      ResponseStatus.declined => l10n.detResponseDeclined,
+      ResponseStatus.tentative => l10n.detResponseTentative,
+      ResponseStatus.needsAction => l10n.detResponseNeedsAction,
+      ResponseStatus.organizer => l10n.detResponseOrganizer,
     };
 
 /// Заголовок события: при наведении мыши справа (в ЗАРЕЗЕРВИРОВАННОМ месте, без
@@ -552,22 +562,24 @@ class _EditableTitleState extends ConsumerState<_EditableTitle> {
         widget.event.copyWith(title: t), delay,
         op: 'update', original: widget.event);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Название изменено'),
-          duration: Duration(seconds: 1)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(L10n.of(context).detTitleChanged),
+          duration: const Duration(seconds: 1)));
     }
   }
 
   Future<void> _copy() async {
     await Clipboard.setData(ClipboardData(text: _title));
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Скопировано'), duration: Duration(seconds: 1)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(L10n.of(context).detCopied),
+          duration: const Duration(seconds: 1)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
     if (_editing) {
       return Row(children: [
         Expanded(
@@ -582,11 +594,11 @@ class _EditableTitleState extends ConsumerState<_EditableTitle> {
         ),
         IconButton(
             icon: const Icon(Icons.check, size: 20, color: Colors.green),
-            tooltip: 'Сохранить',
+            tooltip: l10n.detSave,
             onPressed: _save),
         IconButton(
             icon: const Icon(Icons.close, size: 20),
-            tooltip: 'Отмена',
+            tooltip: l10n.detCancel,
             onPressed: _cancel),
       ]);
     }
@@ -606,8 +618,8 @@ class _EditableTitleState extends ConsumerState<_EditableTitle> {
             child: IgnorePointer(
               ignoring: !_hover,
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                _btn(Icons.copy, 'Скопировать', _copy),
-                _btn(Icons.edit_outlined, 'Изменить название', _startEdit),
+                _btn(Icons.copy, l10n.detCopy, _copy),
+                _btn(Icons.edit_outlined, l10n.detEditTitle, _startEdit),
               ]),
             ),
           ),
@@ -665,13 +677,13 @@ class _CopyableState extends State<_Copyable> {
                           ClipboardData(text: widget.value));
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Скопировано'),
-                                duration: Duration(seconds: 1)));
+                            SnackBar(
+                                content: Text(L10n.of(context).detCopied),
+                                duration: const Duration(seconds: 1)));
                       }
                     },
                     child: Tooltip(
-                      message: 'Скопировать',
+                      message: L10n.of(context).detCopy,
                       child: const Padding(
                         padding: EdgeInsets.all(3),
                         child: Icon(Icons.copy, size: 15, color: Colors.grey),
@@ -710,13 +722,13 @@ class _MeetingJoinRowState extends State<_MeetingJoinRow> {
           child: FilledButton.icon(
             onPressed: () => _EventDetails._launch(widget.url),
             icon: const Icon(Icons.videocam),
-            label: Text('Присоединиться · ${widget.label}',
+            label: Text(L10n.of(context).detJoin(widget.label),
                 overflow: TextOverflow.ellipsis),
           ),
         ),
         const SizedBox(width: 8),
         _hoverCopyIcon(context, _hover, widget.url,
-            message: 'Ссылка на встречу скопирована', size: 18),
+            message: L10n.of(context).detMeetingLinkCopied, size: 18),
       ]),
     );
   }
@@ -724,18 +736,19 @@ class _MeetingJoinRowState extends State<_MeetingJoinRow> {
 
 /// Копирование в буфер + короткий тост. Общий путь для всех copy-иконок карточки.
 Future<void> _copyToClipboard(BuildContext context, String value,
-    {String message = 'Скопировано'}) async {
+    {String? message}) async {
+  final text = message ?? L10n.of(context).detCopied;
   await Clipboard.setData(ClipboardData(text: value));
   if (context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(message), duration: const Duration(seconds: 1)));
+        content: Text(text), duration: const Duration(seconds: 1)));
   }
 }
 
 /// Иконка копирования, занимающая место постоянно, но видимая только на ховере
 /// (`visible`). Постоянный размер — чтобы соседний контент не прыгал.
 Widget _hoverCopyIcon(BuildContext context, bool visible, String value,
-    {String message = 'Скопировано', double size = 14}) {
+    {String? message, double size = 14}) {
   return AnimatedOpacity(
     opacity: visible ? 1 : 0,
     duration: const Duration(milliseconds: 120),
@@ -743,7 +756,7 @@ Widget _hoverCopyIcon(BuildContext context, bool visible, String value,
       borderRadius: BorderRadius.circular(6),
       onTap: visible ? () => _copyToClipboard(context, value, message: message) : null,
       child: Tooltip(
-        message: 'Скопировать',
+        message: L10n.of(context).detCopy,
         child: Padding(
           padding: const EdgeInsets.all(2),
           child: Icon(Icons.copy, size: size, color: Colors.grey),
@@ -766,7 +779,7 @@ class _IdRow extends StatelessWidget {
         await Clipboard.setData(ClipboardData(text: value));
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('$label скопирован'), duration: const Duration(seconds: 1)));
+              SnackBar(content: Text(L10n.of(context).detFieldCopied(label)), duration: const Duration(seconds: 1)));
         }
       },
       child: Padding(
@@ -822,6 +835,7 @@ class _AttendeeRowState extends State<_AttendeeRow> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
     final a = widget.attendee;
     final (icon, color) = switch (a.response) {
       ResponseStatus.accepted => (Icons.check_circle, Colors.green),
@@ -852,18 +866,20 @@ class _AttendeeRowState extends State<_AttendeeRow> {
                           maxLines: 1, overflow: TextOverflow.ellipsis)),
                   // copy-иконка сразу за именем
                   _hoverCopyIcon(context, _hover, copyValue,
-                      message: 'Участник скопирован'),
+                      message: l10n.detAttendeeCopied),
                   if (a.isOrganizer)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 6),
-                      child: Text('организатор',
-                          style: TextStyle(color: Colors.amber, fontSize: 10)),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: Text(l10n.detOrganizer,
+                          style: const TextStyle(
+                              color: Colors.amber, fontSize: 10)),
                     ),
                   if (a.optional)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 6),
-                      child: Text('необязателен',
-                          style: TextStyle(color: Colors.grey, fontSize: 10)),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: Text(l10n.detOptional,
+                          style: const TextStyle(
+                              color: Colors.grey, fontSize: 10)),
                     ),
                 ]),
                 if (name != a.email)
@@ -874,7 +890,7 @@ class _AttendeeRowState extends State<_AttendeeRow> {
               ],
             ),
           ),
-          Text(_responseLabel(a.response),
+          Text(_responseLabel(l10n, a.response),
               style: TextStyle(color: color.withValues(alpha: 0.9), fontSize: 11)),
         ]),
       ),

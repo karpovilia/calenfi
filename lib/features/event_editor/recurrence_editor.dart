@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Редактор правила повторения (RRULE, RFC 5545) в стиле диалога Outlook:
 /// периодичность (день/неделя/месяц/год) + «каждые N», дни недели для
 /// еженедельных, «в N-й день» / «в N-й вторник» для месячных/годовых и
@@ -22,61 +24,65 @@ Future<String?> showRecurrenceDialog(BuildContext context,
 
 /// Человекочитаемое описание правила для строки в редакторе:
 /// «Каждые 2 недели: Пн, Ср · до 30.09.2026».
-String describeRecurrence(String? rrule) {
-  if (rrule == null || rrule.trim().isEmpty) return 'Не повторять';
+String describeRecurrence(BuildContext context, String? rrule) {
+  final l10n = L10n.of(context);
+  if (rrule == null || rrule.trim().isEmpty) return l10n.edDoNotRepeat;
   final r = _Rule.parse(rrule);
   if (r == null) return rrule; // незнакомый RRULE — показываем как есть
 
   final n = r.interval;
-  String every(String one, String few) => n == 1 ? one : 'Каждые $n $few';
   var s = switch (r.freq) {
-    _Freq.daily => every('Ежедневно', 'дн.'),
-    _Freq.weekly => every('Еженедельно', 'нед.'),
-    _Freq.monthly => every('Ежемесячно', 'мес.'),
-    _Freq.yearly => every('Ежегодно', 'г.'),
+    _Freq.daily => n == 1 ? l10n.edDaily : l10n.edEveryNDays(n),
+    _Freq.weekly => n == 1 ? l10n.edWeekly : l10n.edEveryNWeeks(n),
+    _Freq.monthly => n == 1 ? l10n.edMonthly : l10n.edEveryNMonths(n),
+    _Freq.yearly => n == 1 ? l10n.edYearly : l10n.edEveryNYears(n),
   };
   if (r.freq == _Freq.weekly && r.weekdays.isNotEmpty) {
-    final names = [for (final d in r.weekdays) _weekdayShort[d - 1]];
+    final short = _weekdayShort(l10n);
+    final names = [for (final d in r.weekdays) short[d - 1]];
     s += ': ${names.join(', ')}';
   }
   if (r.freq == _Freq.monthly || r.freq == _Freq.yearly) {
     if (r.bySetDay != null) {
-      s += ': ${_ordinalName(r.bySetPos!)} ${_weekdayAcc[r.bySetDay! - 1]}';
+      s += ': ${_ordinalName(l10n, r.bySetPos!)} '
+          '${_weekdayAcc(l10n)[r.bySetDay! - 1]}';
     } else if (r.monthDay != null) {
-      s += ': ${r.monthDay}-го числа';
+      s += ': ${l10n.edOnDayOfMonth(r.monthDay!)}';
     }
   }
-  if (r.count != null) s += ' · ${count(r.count!)}';
+  if (r.count != null) s += ' · ${count(context, r.count!)}';
   if (r.until != null) {
     // Календарная дата UNTIL как есть, без конвертации таймзон: UNTIL хранится
     // концом дня UTC, и toLocal() сдвигал бы «до 31.07» на «до 01.08».
     final u = r.until!;
-    s += ' · до ${u.day.toString().padLeft(2, '0')}.'
+    final date = '${u.day.toString().padLeft(2, '0')}.'
         '${u.month.toString().padLeft(2, '0')}.${u.year}';
+    s += ' · ${l10n.edUntilDate(date)}';
   }
   return s;
 }
 
-String count(int c) => '$c повтор${switch (c % 100) {
-      11 || 12 || 13 || 14 => 'ений',
-      _ => switch (c % 10) { 1 => '', 2 || 3 || 4 => 'а', _ => 'ений' },
-    }}';
+String count(BuildContext context, int c) => L10n.of(context).edOccurrences(c);
 
-const _weekdayShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-// винительный падеж («во 2-й вторник»)
-const _weekdayAcc = [
-  'понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу',
-  'воскресенье'
-];
+List<String> _weekdayShort(L10n l10n) => [
+      l10n.edMon, l10n.edTue, l10n.edWed, l10n.edThu, l10n.edFri, l10n.edSat,
+      l10n.edSun,
+    ];
+// винительный падеж («во 2-й вторник») — только для русского, иначе обычная форма
+List<String> _weekdayAcc(L10n l10n) => [
+      l10n.edMondayAcc, l10n.edTuesdayAcc, l10n.edWednesdayAcc,
+      l10n.edThursdayAcc, l10n.edFridayAcc, l10n.edSaturdayAcc,
+      l10n.edSundayAcc,
+    ];
 const _icalDays = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
 
-String _ordinalName(int p) => switch (p) {
-      1 => 'в 1-й',
-      2 => 'во 2-й',
-      3 => 'в 3-й',
-      4 => 'в 4-й',
-      -1 => 'в последний',
-      _ => 'в $p-й',
+String _ordinalName(L10n l10n, int p) => switch (p) {
+      1 => l10n.edOrdinal1,
+      2 => l10n.edOrdinal2,
+      3 => l10n.edOrdinal3,
+      4 => l10n.edOrdinal4,
+      -1 => l10n.edOrdinalLast,
+      _ => l10n.edOrdinalN(p),
     };
 
 enum _Freq { daily, weekly, monthly, yearly }
@@ -238,17 +244,18 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
     return ord >= 5 ? -1 : ord; // 5-я неделя == «последний»
   }
 
-  String get _unitLabel => switch (_rule.freq) {
-        _Freq.daily => 'дн.',
-        _Freq.weekly => 'нед.',
-        _Freq.monthly => 'мес.',
-        _Freq.yearly => 'г.',
+  String _unitLabel(L10n l10n) => switch (_rule.freq) {
+        _Freq.daily => l10n.edUnitDay,
+        _Freq.weekly => l10n.edUnitWeek,
+        _Freq.monthly => l10n.edUnitMonth,
+        _Freq.yearly => l10n.edUnitYear,
       };
 
   @override
   Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
     return AlertDialog(
-      title: const Text('Повторение'),
+      title: Text(l10n.edRecurrenceTitle),
       content: SizedBox(
         width: 380,
         child: SingleChildScrollView(
@@ -262,11 +269,14 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
                 style: const ButtonStyle(
                     visualDensity: VisualDensity.compact,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                segments: const [
-                  ButtonSegment(value: _Freq.daily, label: Text('День')),
-                  ButtonSegment(value: _Freq.weekly, label: Text('Неделя')),
-                  ButtonSegment(value: _Freq.monthly, label: Text('Месяц')),
-                  ButtonSegment(value: _Freq.yearly, label: Text('Год')),
+                segments: [
+                  ButtonSegment(value: _Freq.daily, label: Text(l10n.edFreqDay)),
+                  ButtonSegment(
+                      value: _Freq.weekly, label: Text(l10n.edFreqWeek)),
+                  ButtonSegment(
+                      value: _Freq.monthly, label: Text(l10n.edFreqMonth)),
+                  ButtonSegment(
+                      value: _Freq.yearly, label: Text(l10n.edFreqYear)),
                 ],
                 selected: {_rule.freq},
                 onSelectionChanged: (s) => setState(() {
@@ -280,7 +290,7 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
               // ── каждые N ──────────────────────────────────────────────
               Row(
                 children: [
-                  const Text('Каждые'),
+                  Text(l10n.edEvery),
                   const SizedBox(width: 8),
                   SizedBox(
                     width: 56,
@@ -294,7 +304,7 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(_unitLabel),
+                  Text(_unitLabel(l10n)),
                 ],
               ),
               // ── дни недели (еженедельно) ──────────────────────────────
@@ -305,7 +315,7 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
                   children: [
                     for (var d = 1; d <= 7; d++)
                       FilterChip(
-                        label: Text(_weekdayShort[d - 1]),
+                        label: Text(_weekdayShort(l10n)[d - 1]),
                         visualDensity: VisualDensity.compact,
                         selected: _rule.weekdays.contains(d),
                         onSelected: (on) => setState(() {
@@ -349,14 +359,14 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                         value: false,
-                        title: Text('$_startMonthDay-го числа'),
+                        title: Text(l10n.edOnDayOfMonth(_startMonthDay)),
                       ),
                       RadioListTile<bool>(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                         value: true,
                         title: Text(
-                            '${_ordinalName(_startWeekOrdinal)} ${_weekdayAcc[_startWeekday - 1]}'),
+                            '${_ordinalName(l10n, _startWeekOrdinal)} ${_weekdayAcc(l10n)[_startWeekday - 1]}'),
                       ),
                     ],
                   ),
@@ -374,7 +384,7 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       value: _EndMode.never,
-                      title: const Text('Без даты окончания'),
+                      title: Text(l10n.edNoEndDate),
                     ),
                     RadioListTile<_EndMode>(
                       dense: true,
@@ -382,7 +392,7 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
                       value: _EndMode.afterCount,
                       title: Row(
                         children: [
-                          const Text('Завершить после'),
+                          Text(l10n.edEndAfter),
                           const SizedBox(width: 8),
                           SizedBox(
                             width: 48,
@@ -396,7 +406,7 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text('повторений'),
+                          Text(l10n.edOccurrencesLabel),
                         ],
                       ),
                     ),
@@ -406,7 +416,7 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
                       value: _EndMode.byDate,
                       title: Row(
                         children: [
-                          const Text('До даты'),
+                          Text(l10n.edUntil),
                           const SizedBox(width: 8),
                           TextButton(
                             onPressed: () async {
@@ -427,7 +437,7 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
                               }
                             },
                             child: Text(_rule.until == null
-                                ? 'выбрать…'
+                                ? l10n.edChoose
                                 : '${_rule.until!.day.toString().padLeft(2, '0')}.'
                                     '${_rule.until!.month.toString().padLeft(2, '0')}.'
                                     '${_rule.until!.year}'),
@@ -446,10 +456,10 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
         if (widget.initial != null)
           TextButton(
             onPressed: () => Navigator.pop(context, ''),
-            child: const Text('Не повторять'),
+            child: Text(l10n.edDoNotRepeat),
           ),
         TextButton(
-            onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+            onPressed: () => Navigator.pop(context), child: Text(l10n.edCancel)),
         FilledButton(
           onPressed: () {
             _rule.interval =
@@ -477,7 +487,7 @@ class _RecurrenceDialogState extends State<_RecurrenceDialog> {
             }
             Navigator.pop(context, _rule.build());
           },
-          child: const Text('Готово'),
+          child: Text(l10n.edDone),
         ),
       ],
     );

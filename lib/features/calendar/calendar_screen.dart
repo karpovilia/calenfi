@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/keymap.dart';
 import '../../app/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../domain/models/calendar_event.dart';
 import '../../domain/models/merged_event.dart';
 import '../event_editor/event_editor_screen.dart';
@@ -58,7 +59,7 @@ class _MoveModeHint extends StatelessWidget {
           Icon(Icons.open_with, size: 14, color: cs.onPrimaryContainer),
           const SizedBox(width: 6),
           Expanded(
-            child: Text('Режим переноса: тяните встречи. Тап — детали.',
+            child: Text(L10n.of(context).calMoveModeHint,
                 style: TextStyle(fontSize: 12, color: cs.onPrimaryContainer)),
           ),
         ],
@@ -187,7 +188,7 @@ class _EventSearchState extends ConsumerState<_EventSearch> {
               prefixIcon: const Icon(Icons.search, size: 18),
               prefixIconConstraints:
                   const BoxConstraints(minWidth: 34, minHeight: 34),
-              hintText: 'Поиск: название, участник, id',
+              hintText: L10n.of(context).calSearchHint,
               hintStyle: TextStyle(
                   fontSize: 13,
                   color: Theme.of(context)
@@ -243,7 +244,7 @@ class _EventSearchState extends ConsumerState<_EventSearch> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 6, 8, 4),
                     child: Row(children: [
-                      Text('Найдено: ${sorted.length}',
+                      Text(L10n.of(ctx).calSearchFound(sorted.length),
                           style: TextStyle(
                               fontSize: 12, color: cs.onSurfaceVariant)),
                       const Spacer(),
@@ -253,10 +254,12 @@ class _EventSearchState extends ConsumerState<_EventSearch> {
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         showSelectedIcon: false,
-                        segments: const [
+                        segments: [
                           ButtonSegment(
-                              value: false, label: Text('Релевантность')),
-                          ButtonSegment(value: true, label: Text('Дата')),
+                              value: false,
+                              label: Text(L10n.of(ctx).calSortRelevance)),
+                          ButtonSegment(
+                              value: true, label: Text(L10n.of(ctx).calSortDate)),
                         ],
                         selected: {_byDate},
                         onSelectionChanged: (s) =>
@@ -267,9 +270,9 @@ class _EventSearchState extends ConsumerState<_EventSearch> {
                   const Divider(height: 1),
                   Flexible(
                     child: sorted.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text('Ничего не найдено'))
+                        ? Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(L10n.of(ctx).calNothingFound))
                         : ListView.builder(
                             shrinkWrap: true,
                             padding: EdgeInsets.zero,
@@ -311,7 +314,7 @@ class _EventSearchState extends ConsumerState<_EventSearch> {
           width: 10,
           height: 10,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-      title: Text(e.title.isEmpty ? 'Без названия' : e.title,
+      title: Text(e.title.isEmpty ? L10n.of(context).calNoTitle : e.title,
           maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(who.isEmpty ? date : '$date · $who',
           maxLines: 1,
@@ -350,10 +353,12 @@ class _PendingInline extends ConsumerWidget {
         TextButton(
             style: dense,
             onPressed: notifier.cancelAll,
-            child: const Text('Отменить')),
+            child: Text(L10n.of(context).calCancel)),
         const SizedBox(width: 2),
         FilledButton(
-            style: dense, onPressed: notifier.applyAll, child: const Text('В облако')),
+            style: dense,
+            onPressed: notifier.applyAll,
+            child: Text(L10n.of(context).calToCloud)),
       ]),
     );
   }
@@ -379,20 +384,20 @@ class _PendingBar extends ConsumerWidget {
                 size: 16, color: cs.onTertiaryContainer),
             const SizedBox(width: 8),
             Expanded(
-              child: Text('Не отправлено в облако: $n',
+              child: Text(L10n.of(context).calPendingCount(n),
                   style:
                       TextStyle(fontSize: 13, color: cs.onTertiaryContainer)),
             ),
             TextButton.icon(
               onPressed: notifier.cancelAll,
               icon: const Icon(Icons.undo, size: 16),
-              label: const Text('Отменить'),
+              label: Text(L10n.of(context).calCancel),
             ),
             const SizedBox(width: 4),
             FilledButton.icon(
               onPressed: notifier.applyAll,
               icon: const Icon(Icons.cloud_upload, size: 16),
-              label: const Text('В облако'),
+              label: Text(L10n.of(context).calToCloud),
             ),
           ],
         ),
@@ -457,7 +462,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   // Неделя/месяц — свайп листает период.
                   CalendarViewMode.week => _SwipePeriod(child: WeekView()),
                   CalendarViewMode.month => _SwipePeriod(child: MonthView()),
-                  _ => const Center(child: Text('Вид в разработке')),
+                  _ => Center(child: Text(L10n.of(context).calViewInDev)),
                 },
               ),
             ],
@@ -501,9 +506,9 @@ class _SettingsDrawerHome extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
             child: Row(
               children: [
-                const Text('Настройки',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(L10n.of(context).calSettings,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close),
@@ -583,7 +588,7 @@ class _SyncStatus extends ConsumerWidget {
         await ref.read(syncTriggerProvider)();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Синхронизировано')));
+              SnackBar(content: Text(L10n.of(context).calSynced)));
         }
       },
       child: Padding(
@@ -668,7 +673,7 @@ class _TopBar extends ConsumerWidget {
       builder: (ctx) => IconButton(
         style: _compactIconStyle,
         icon: const Icon(Icons.more_vert),
-        tooltip: 'Настройки',
+        tooltip: L10n.of(context).calSettings,
         onPressed: () => Scaffold.of(ctx).openEndDrawer(),
       ),
     );
@@ -682,12 +687,21 @@ class _TopBar extends ConsumerWidget {
           : null,
       segments: [
         ButtonSegment(
-            value: CalendarViewMode.day, label: Text(narrow ? 'Д' : 'День')),
+            value: CalendarViewMode.day,
+            label: Text(narrow
+                ? L10n.of(context).calDayShort
+                : L10n.of(context).calDay)),
         ButtonSegment(
-            value: CalendarViewMode.week, label: Text(narrow ? 'Н' : 'Неделя')),
+            value: CalendarViewMode.week,
+            label: Text(narrow
+                ? L10n.of(context).calWeekShort
+                : L10n.of(context).calWeek)),
         if (showMonth)
           ButtonSegment(
-              value: CalendarViewMode.month, label: Text(narrow ? 'М' : 'Месяц')),
+              value: CalendarViewMode.month,
+              label: Text(narrow
+                  ? L10n.of(context).calMonthShort
+                  : L10n.of(context).calMonth)),
       ],
       selected: {selectedMode},
       onSelectionChanged: (s) =>
@@ -716,7 +730,8 @@ class _TopBar extends ConsumerWidget {
                 onPressed: () => shiftFocused(ref, -1),
                 icon: const Icon(Icons.chevron_left)),
             OutlinedButton(
-                onPressed: () => goToday(ref), child: const Text('Сегодня')),
+                onPressed: () => goToday(ref),
+                child: Text(L10n.of(context).calToday)),
             IconButton(
                 onPressed: () => shiftFocused(ref, 1),
                 icon: const Icon(Icons.chevron_right)),
@@ -743,8 +758,8 @@ class _TopBar extends ConsumerWidget {
               return IconButton(
                 style: _compactIconStyle,
                 tooltip: moveMode
-                    ? 'Закрепить встречи'
-                    : 'Открепить встречи (перенос перетаскиванием)',
+                    ? L10n.of(context).calPinEvents
+                    : L10n.of(context).calUnpinEvents,
                 isSelected: moveMode,
                 onPressed: () =>
                     ref.read(moveModeProvider.notifier).state = !moveMode,
@@ -760,8 +775,8 @@ class _TopBar extends ConsumerWidget {
               return IconButton(
                 style: _compactIconStyle,
                 tooltip: combine
-                    ? 'Объединять одинаковые встречи (вкл)'
-                    : 'Объединять одинаковые встречи (выкл — каждая отдельно)',
+                    ? L10n.of(context).calCombineOn
+                    : L10n.of(context).calCombineOff,
                 isSelected: combine,
                 onPressed: () =>
                     ref.read(combineProvider.notifier).state = !combine,
@@ -771,7 +786,7 @@ class _TopBar extends ConsumerWidget {
             }),
             IconButton(
               style: _compactIconStyle,
-              tooltip: 'Показать удалённые/отменённые',
+              tooltip: L10n.of(context).calShowCancelled,
               isSelected: showCancelled,
               onPressed: () => ref.read(showCancelledProvider.notifier).state =
                   !showCancelled,
@@ -812,7 +827,7 @@ class _PeriodTitle extends ConsumerWidget {
     switch (mode) {
       case CalendarViewMode.day:
         text = '${_kWeekdays[d.weekday - 1]}, ${d.day} ${_kMonthsGen[d.month - 1]}';
-        if (isToday) text = 'Сегодня · $text';
+        if (isToday) text = '${L10n.of(context).calToday} · $text';
       case CalendarViewMode.week:
         final s = weekStart(d);
         final e = s.add(const Duration(days: 6));

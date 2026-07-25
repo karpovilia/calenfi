@@ -1,0 +1,406 @@
+{
+  "@@locale": "en",
+  "accAddAccount": "Add account",
+  "accAppPassword": "App password",
+  "accAppPasswordHelper": "NOT your main email password — create an app password",
+  "accAutoRefresh": "Auto-refresh",
+  "accCaldavPasswordHelper": "For CalDAV — an app password, not your main email password",
+  "accCancel": "Cancel",
+  "accChangePassword": "Change password",
+  "accCompleteSignIn": "{name}: complete sign-in in the browser that opened…",
+  "@accCompleteSignIn": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "accConnect": "Connect",
+  "accConnectAccount": "Connect account",
+  "accConnected": "Connected: {email}",
+  "@accConnected": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "accConnecting": "Connecting…",
+  "accDelete": "Delete",
+  "accEmail": "E-mail",
+  "accError": "Error: {error}",
+  "@accError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "accEwsUrlLabel": "EWS URL (optional)",
+  "accFailed": "Failed: {error}",
+  "@accFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "accFillEmailPassword": "Fill in e-mail and password",
+  "accHidden": "hidden",
+  "accHost": "Host",
+  "accHour1": "1 h",
+  "accLoginIfDifferent": "Login (if different)",
+  "accLoginPassword": "Login and password",
+  "accManual": "Manual",
+  "accMinutes": "{count} min",
+  "@accMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accNewPassword": "New password",
+  "accNoCalendars": "No calendars",
+  "accPassword": "Password",
+  "accPasswordSaved": "Password saved, syncing…",
+  "accPort": "Port",
+  "accSave": "Save",
+  "accSectionCalendars": "Calendars",
+  "accSectionVideoMeetings": "Video meetings",
+  "accSignInBrowser": "Sign in via browser",
+  "accStatusAuthError": "authorization error",
+  "accStatusNeedsReconnect": "reconnection required",
+  "accStatusOffline": "no network",
+  "accStatusOk": "connected",
+  "accStatusSyncError": "sync failed",
+  "accTitle": "Accounts",
+  "accVisibilityHint": "Calendar visibility — in Settings → Calendars",
+  "appTitle": "Calenfi",
+  "calCancel": "Cancel",
+  "calCombineOff": "Merge identical events (off — each shown separately)",
+  "calCombineOn": "Merge identical events (on)",
+  "calDay": "Day",
+  "calDayShort": "D",
+  "calMonth": "Month",
+  "calMonthShort": "M",
+  "calMoveModeHint": "Move mode: drag events. Tap for details.",
+  "calNoTitle": "No title",
+  "calNothingFound": "Nothing found",
+  "calPendingCount": "Not sent to cloud: {count}",
+  "@calPendingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calPinEvents": "Pin events",
+  "calSearchFound": "Found: {count}",
+  "@calSearchFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calSearchHint": "Search: title, participant, id",
+  "calSettings": "Settings",
+  "calShowCancelled": "Show deleted/cancelled",
+  "calSortDate": "Date",
+  "calSortRelevance": "Relevance",
+  "calSynced": "Synced",
+  "calToCloud": "To cloud",
+  "calToday": "Today",
+  "calUnpinEvents": "Unpin events (move by dragging)",
+  "calViewInDev": "View under development",
+  "calWeek": "Week",
+  "calWeekShort": "W",
+  "detAccept": "Accept",
+  "detAllDay": "all day",
+  "detAttendeeCopied": "Attendee copied",
+  "detAttendeesCount": "Attendees: {total}  ·  {accepted} accepted",
+  "@detAttendeesCount": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "accepted": {
+        "type": "int"
+      }
+    }
+  },
+  "detCancel": "Cancel",
+  "detCancelledDeleted": "Cancelled / deleted",
+  "detConfVideoCall": "video call",
+  "detCopied": "Copied",
+  "detCopy": "Copy",
+  "detDecline": "Decline",
+  "detDelete": "Delete",
+  "detDeleteEventQ": "Delete event?",
+  "detEdit": "Edit",
+  "detEditTitle": "Edit title",
+  "detFieldCopied": "{label} copied",
+  "@detFieldCopied": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "detId": "ID",
+  "detInMultipleCalendars": "In multiple calendars ({count}):",
+  "@detInMultipleCalendars": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "detJoin": "Join · {label}",
+  "@detJoin": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "detMeetingLinkCopied": "Meeting link copied",
+  "detOpenInCloud": "Open in cloud",
+  "detOptional": "optional",
+  "detOrganizer": "organizer",
+  "detRecurringWhatDelete": "Recurring event — what to delete?",
+  "detResponseAccepted": "Accepted",
+  "detResponseDeclined": "Declined",
+  "detResponseNeedsAction": "Awaiting response",
+  "detResponseOrganizer": "You're the organizer",
+  "detResponseTentative": "Maybe",
+  "detSave": "Save",
+  "detTentative": "Maybe",
+  "detThisAndFollowing": "This and following",
+  "detThisEventOnly": "This event only",
+  "detTitleChanged": "Title changed",
+  "detUnknownCalendar": "Unknown calendar",
+  "detWholeSeries": "Entire series",
+  "edAllDay": "All day",
+  "edAttendees": "Attendees",
+  "edBusy": "Busy",
+  "edCalendar": "Calendar",
+  "edCancel": "Cancel",
+  "edChoose": "choose…",
+  "edConference": "Video meeting",
+  "edConnectAccount": "Connect account",
+  "edDaily": "Daily",
+  "edDoNotRepeat": "Do not repeat",
+  "edDone": "Done",
+  "edEditEvent": "Edit event",
+  "edEnd": "End",
+  "edEndAfter": "End after",
+  "edEvery": "Every",
+  "edEveryNDays": "{count, plural, one{Every {count} day} other{Every {count} days}}",
+  "@edEveryNDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "edEveryNMonths": "{count, plural, one{Every {count} month} other{Every {count} months}}",
+  "@edEveryNMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "edEveryNWeeks": "{count, plural, one{Every {count} week} other{Every {count} weeks}}",
+  "@edEveryNWeeks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "edEveryNYears": "{count, plural, one{Every {count} year} other{Every {count} years}}",
+  "@edEveryNYears": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "edFree": "Free",
+  "edFreqDay": "Day",
+  "edFreqMonth": "Month",
+  "edFreqWeek": "Week",
+  "edFreqYear": "Year",
+  "edFri": "Fri",
+  "edFridayAcc": "Friday",
+  "edInviteeHint": "Name from contacts or email",
+  "edLocationHint": "Location",
+  "edMon": "Mon",
+  "edMondayAcc": "Monday",
+  "edMonthly": "Monthly",
+  "edNewEvent": "New event",
+  "edNoEndDate": "No end date",
+  "edNone": "None",
+  "edNotesHint": "Notes",
+  "edOccurrences": "{count, plural, one{{count} occurrence} other{{count} occurrences}}",
+  "@edOccurrences": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "edOccurrencesLabel": "occurrences",
+  "edOnDayOfMonth": "on day {day}",
+  "@edOnDayOfMonth": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "edOrdinal1": "on the 1st",
+  "edOrdinal2": "on the 2nd",
+  "edOrdinal3": "on the 3rd",
+  "edOrdinal4": "on the 4th",
+  "edOrdinalLast": "on the last",
+  "edOrdinalN": "on the {number}th",
+  "@edOrdinalN": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "edRecurrenceTitle": "Recurrence",
+  "edRepeat": "Repeat",
+  "edSat": "Sat",
+  "edSaturdayAcc": "Saturday",
+  "edSeriesInstance": "Series instance — rule applies to the whole series",
+  "edShowAs": "Show as",
+  "edStart": "Start",
+  "edSun": "Sun",
+  "edSundayAcc": "Sunday",
+  "edThu": "Thu",
+  "edThursdayAcc": "Thursday",
+  "edTitleHint": "Title",
+  "edTue": "Tue",
+  "edTuesdayAcc": "Tuesday",
+  "edUnitDay": "days",
+  "edUnitMonth": "months",
+  "edUnitWeek": "weeks",
+  "edUnitYear": "years",
+  "edUntil": "Until date",
+  "edUntilDate": "until {date}",
+  "@edUntilDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "edUntitled": "Untitled",
+  "edVisDefault": "Default",
+  "edVisPrivate": "Private",
+  "edVisPublic": "Public",
+  "edVisibility": "Visibility",
+  "edWed": "Wed",
+  "edWednesdayAcc": "Wednesday",
+  "edWeekly": "Weekly",
+  "edYearly": "Yearly",
+  "setAbout": "About",
+  "setAboutSubtitle": "Local-first calendar aggregator · MVP",
+  "setAccounts": "Accounts",
+  "setAccountsAndConnections": "Accounts & connections",
+  "setAccountsConnected": "{count} connected",
+  "@setAccountsConnected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setCalendarNameHint": "Calendar name",
+  "setCalendars": "Calendars",
+  "setCalendarsSubtitle": "Which calendars to show in the grid",
+  "setCancel": "Cancel",
+  "setColorTitle": "Color: {name}",
+  "@setColorTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "setCombine": "Merge meetings",
+  "setCombineSubtitle": "Merge identical events from different calendars. Turn off — each meeting stays separate, so you can work with every copy",
+  "setCommitDelay": "Delay before sending changes",
+  "setCommitDelaySubtitle": "Move/resize wait before going to the cloud: dashed outline + countdown + \"apply now\". 0 — instantly.",
+  "setDelayImmediate": "Immediately",
+  "setDelayMinutes": "{count} min",
+  "@setDelayMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setEvents": "Events",
+  "setFromSource": "From source: {name}",
+  "@setFromSource": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "setLanguage": "Language",
+  "setLanguageSystem": "System",
+  "setMaps": "Maps",
+  "setMapsSubtitle": "Yandex Maps by default",
+  "setNoAccounts": "No accounts",
+  "setNoCalendars": "no calendars",
+  "setOpenPlacesIn": "Open places in",
+  "setReminderAtStart": "at start",
+  "setReminderAtStartFull": "At start time",
+  "setReminderHours": "{count} h before",
+  "@setReminderHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setReminderMinutes": "{count} min before",
+  "@setReminderMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setReminderNone": "none",
+  "setReminderNoneFull": "No reminder",
+  "setReminderSubtitle": "Default for events in this calendar",
+  "setReminderTitle": "Reminder: {name}",
+  "@setReminderTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "setRenameCalendar": "Rename calendar",
+  "setReset": "Reset",
+  "setResetColor": "Reset to source color",
+  "setSave": "Save",
+  "setShowCancelled": "Show deleted/cancelled",
+  "setShowCancelledSubtitle": "In a strikethrough style",
+  "setShowMonth": "Show month view",
+  "setShowMonthSubtitle": "The month is cramped on a phone — you can hide it",
+  "setTitle": "Settings",
+  "setView": "View"
+}

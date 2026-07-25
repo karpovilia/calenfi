@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'connect_account.dart';
 
 /// Полноэкранный экран подключения учётной записи. Раньше был тесный
@@ -17,24 +18,25 @@ class AddAccountScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = L10n.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Подключить учётную запись')),
+      appBar: AppBar(title: Text(l10n.accConnectAccount)),
       body: ListView(
         children: [
-          const _SectionHeader('Календари'),
-          _tile(Icons.event, 'Google', 'Вход через браузер',
+          _SectionHeader(l10n.accSectionCalendars),
+          _tile(Icons.event, 'Google', l10n.accSignInBrowser,
               () => _oauth(context, ref, 'Google',
                   () => ref.read(connectAccountServiceProvider).connectGoogle())),
-          _tile(Icons.business, 'Microsoft 365 / Outlook', 'Вход через браузер',
+          _tile(Icons.business, 'Microsoft 365 / Outlook', l10n.accSignInBrowser,
               () => _oauth(context, ref, 'Microsoft',
                   () => ref.read(connectAccountServiceProvider).connectMicrosoft())),
-          _tile(Icons.cloud_outlined, 'Yandex (CalDAV)', 'Пароль приложения',
+          _tile(Icons.cloud_outlined, 'Yandex (CalDAV)', l10n.accAppPassword,
               () => _openForm(context, _ProviderKind.caldav)),
-          _tile(Icons.dns_outlined, 'Exchange (EWS)', 'Логин и пароль',
+          _tile(Icons.dns_outlined, 'Exchange (EWS)', l10n.accLoginPassword,
               () => _openForm(context, _ProviderKind.ews)),
           const Divider(height: 32),
-          const _SectionHeader('Видеовстречи'),
-          _tile(Icons.videocam_outlined, 'Yandex Telemost', 'Вход через браузер',
+          _SectionHeader(l10n.accSectionVideoMeetings),
+          _tile(Icons.videocam_outlined, 'Yandex Telemost', l10n.accSignInBrowser,
               () => _oauth(context, ref, 'Telemost',
                   () => ref
                       .read(connectAccountServiceProvider)
@@ -57,17 +59,18 @@ class AddAccountScreen extends ConsumerWidget {
   /// OAuth-провайдеры (Google/Microsoft/Telemost): открываем браузер, ждём вход.
   Future<void> _oauth(BuildContext context, WidgetRef ref, String name,
       Future<String> Function() connect) async {
+    final l10n = L10n.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final nav = Navigator.of(context);
     messenger.showSnackBar(SnackBar(
-        content: Text('$name: завершите вход в открывшемся браузере…'),
+        content: Text(l10n.accCompleteSignIn(name)),
         duration: const Duration(seconds: 10)));
     try {
       final who = await connect();
-      messenger.showSnackBar(SnackBar(content: Text('Подключено: $who')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.accConnected(who))));
       if (nav.canPop()) nav.pop();
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Не удалось: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.accFailed(e.toString()))));
     }
   }
 
@@ -111,9 +114,10 @@ class _CredentialFormScreenState extends ConsumerState<_CredentialFormScreen> {
   }
 
   Future<void> _submit() async {
+    final l10n = L10n.of(context);
     if (_email.text.trim().isEmpty || _pass.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Заполните e-mail и пароль')));
+          SnackBar(content: Text(l10n.accFillEmailPassword)));
       return;
     }
     final messenger = ScaffoldMessenger.of(context);
@@ -137,17 +141,18 @@ class _CredentialFormScreenState extends ConsumerState<_CredentialFormScreen> {
         );
       }
       messenger.showSnackBar(
-          SnackBar(content: Text('Подключено: ${_email.text.trim()}')));
+          SnackBar(content: Text(l10n.accConnected(_email.text.trim()))));
       nav.pop(); // форма
       if (nav.canPop()) nav.pop(); // экран выбора провайдера
     } catch (e) {
       if (mounted) setState(() => _busy = false);
-      messenger.showSnackBar(SnackBar(content: Text('Не удалось: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.accFailed(e.toString()))));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
     return Scaffold(
       appBar: AppBar(
           title: Text(_isCaldav ? 'Yandex / CalDAV' : 'Exchange (EWS)')),
@@ -158,19 +163,18 @@ class _CredentialFormScreenState extends ConsumerState<_CredentialFormScreen> {
             controller: _email,
             keyboardType: TextInputType.emailAddress,
             autofocus: true,
-            decoration: const InputDecoration(
-                labelText: 'E-mail', prefixIcon: Icon(Icons.alternate_email)),
+            decoration: InputDecoration(
+                labelText: l10n.accEmail,
+                prefixIcon: const Icon(Icons.alternate_email)),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _pass,
             obscureText: _obscure,
             decoration: InputDecoration(
-              labelText: _isCaldav ? 'Пароль приложения' : 'Пароль',
+              labelText: _isCaldav ? l10n.accAppPassword : l10n.accPassword,
               prefixIcon: const Icon(Icons.key_outlined),
-              helperText: _isCaldav
-                  ? 'НЕ основной пароль почты — создайте пароль приложения'
-                  : null,
+              helperText: _isCaldav ? l10n.accAppPasswordHelper : null,
               helperMaxLines: 2,
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
@@ -185,28 +189,28 @@ class _CredentialFormScreenState extends ConsumerState<_CredentialFormScreen> {
                 flex: 3,
                 child: TextField(
                     controller: _host,
-                    decoration: const InputDecoration(labelText: 'Хост')),
+                    decoration: InputDecoration(labelText: l10n.accHost)),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
                     controller: _port,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Порт')),
+                    decoration: InputDecoration(labelText: l10n.accPort)),
               ),
             ])
           else ...[
             TextField(
               controller: _ewsUrl,
-              decoration: const InputDecoration(
-                  labelText: 'EWS URL (необязательно)',
+              decoration: InputDecoration(
+                  labelText: l10n.accEwsUrlLabel,
                   hintText: 'https://mail.example.org/EWS/Exchange.asmx'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _user,
-              decoration: const InputDecoration(
-                  labelText: 'Логин (если отличается)',
+              decoration: InputDecoration(
+                  labelText: l10n.accLoginIfDifferent,
                   hintText: r'DOMAIN\user'),
             ),
           ],
@@ -219,7 +223,7 @@ class _CredentialFormScreenState extends ConsumerState<_CredentialFormScreen> {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.link),
-            label: Text(_busy ? 'Подключаю…' : 'Подключить'),
+            label: Text(_busy ? l10n.accConnecting : l10n.accConnect),
           ),
         ],
       ),

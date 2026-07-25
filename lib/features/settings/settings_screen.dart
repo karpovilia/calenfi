@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/locale_provider.dart';
 import '../../app/providers.dart';
 import '../../data/repositories/account_repository.dart';
 import '../../domain/models/account.dart';
 import '../../domain/models/calendar.dart';
 import '../../domain/models/enums.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/maps_service.dart';
 import '../accounts/accounts_screen.dart';
 import '../calendar/calendar_state.dart';
 
-/// Экран всех настроек (FR-C). Подмножество настроек Fantastical
+/// Экран всех настроек. Подмножество настроек Fantastical
 /// (см. docs/fantastical-settings-reference.md), включая выбор активных
 /// календарей («Calendars & Lists»).
 class SettingsScreen extends ConsumerWidget {
@@ -18,7 +20,7 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-        appBar: AppBar(title: const Text('Настройки')),
+        appBar: AppBar(title: Text(L10n.of(context).setTitle)),
         body: const SettingsPanel(),
       );
 }
@@ -30,6 +32,7 @@ class SettingsPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = L10n.of(context);
     final combine = ref.watch(combineProvider);
     final showCancelled = ref.watch(showCancelledProvider);
     final showMonth = ref.watch(showMonthViewProvider);
@@ -40,11 +43,11 @@ class SettingsPanel extends ConsumerWidget {
     return ListView(
         children: [
           // ───────── Активные календари (Fantastical «Calendars & Lists») ──────
-          const _SectionHeader('Календари'),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text('Какие календари показывать в сетке',
-                style: TextStyle(color: Colors.grey, fontSize: 12)),
+          _SectionHeader(l10n.setCalendars),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(l10n.setCalendarsSubtitle,
+                style: const TextStyle(color: Colors.grey, fontSize: 12)),
           ),
           for (final acc in accounts)
             _AccountCalendars(
@@ -52,26 +55,24 @@ class SettingsPanel extends ConsumerWidget {
               calendars: calendars.where((c) => c.accountId == acc.id).toList(),
             ),
           if (accounts.isEmpty)
-            const ListTile(dense: true, title: Text('Нет аккаунтов')),
+            ListTile(dense: true, title: Text(l10n.setNoAccounts)),
 
           const Divider(),
-          const _SectionHeader('Вид'),
+          _SectionHeader(l10n.setView),
           SwitchListTile(
-            title: const Text('Показывать месячный вид'),
-            subtitle: const Text('На телефоне месяц тесный — можно убрать'),
+            title: Text(l10n.setShowMonth),
+            subtitle: Text(l10n.setShowMonthSubtitle),
             value: showMonth,
             onChanged: (v) =>
                 ref.read(showMonthViewProvider.notifier).state = v,
           ),
           const Divider(),
-          const _SectionHeader('События'),
+          _SectionHeader(l10n.setEvents),
           SwitchListTile(
             secondary:
                 Icon(combine ? Icons.layers : Icons.layers_clear_outlined),
-            title: const Text('Объединять встречи'),
-            subtitle: const Text(
-                'Склеивать одинаковые события из разных календарей. Отжать — '
-                'каждая встреча отдельно, можно работать с каждой копией (FR-D)'),
+            title: Text(l10n.setCombine),
+            subtitle: Text(l10n.setCombineSubtitle),
             value: combine,
             onChanged: (v) => ref.read(combineProvider.notifier).state = v,
           ),
@@ -79,54 +80,72 @@ class SettingsPanel extends ConsumerWidget {
             secondary: Icon(showCancelled
                 ? Icons.event_busy
                 : Icons.event_busy_outlined),
-            title: const Text('Показывать удалённые/отменённые'),
-            subtitle: const Text('Зачёркнутым стилем (FR-V12)'),
+            title: Text(l10n.setShowCancelled),
+            subtitle: Text(l10n.setShowCancelledSubtitle),
             value: showCancelled,
             onChanged: (v) =>
                 ref.read(showCancelledProvider.notifier).state = v,
           ),
           ListTile(
-            title: const Text('Задержка перед отправкой изменений'),
-            subtitle: const Text(
-                'Перенос/ресайз ждут перед уходом в облако: пунктир + отсчёт + '
-                '«применить сейчас». 0 — сразу.'),
+            title: Text(l10n.setCommitDelay),
+            subtitle: Text(l10n.setCommitDelaySubtitle),
             trailing: DropdownButton<int>(
               value: ref.watch(commitDelayProvider).inMinutes,
               onChanged: (m) => ref.read(commitDelayProvider.notifier).state =
                   Duration(minutes: m ?? 0),
-              items: const [
-                DropdownMenuItem(value: 0, child: Text('Сразу')),
-                DropdownMenuItem(value: 1, child: Text('1 мин')),
-                DropdownMenuItem(value: 2, child: Text('2 мин')),
-                DropdownMenuItem(value: 5, child: Text('5 мин')),
+              items: [
+                DropdownMenuItem(value: 0, child: Text(l10n.setDelayImmediate)),
+                DropdownMenuItem(value: 1, child: Text(l10n.setDelayMinutes(1))),
+                DropdownMenuItem(value: 2, child: Text(l10n.setDelayMinutes(2))),
+                DropdownMenuItem(value: 5, child: Text(l10n.setDelayMinutes(5))),
               ],
             ),
           ),
 
           const Divider(),
-          const _SectionHeader('Карты'),
-          const ListTile(
-            title: Text('Открывать места в'),
-            subtitle: Text('По умолчанию — Yandex Maps (FR-L2)'),
-            trailing: _MapsDropdown(),
+          _SectionHeader(l10n.setMaps),
+          ListTile(
+            title: Text(l10n.setOpenPlacesIn),
+            subtitle: Text(l10n.setMapsSubtitle),
+            trailing: const _MapsDropdown(),
           ),
 
           const Divider(),
-          const _SectionHeader('Учётные записи'),
+          _SectionHeader(l10n.setAccounts),
           ListTile(
             leading: const Icon(Icons.manage_accounts_outlined),
-            title: const Text('Учётные записи и подключения'),
-            subtitle: Text('${accounts.length} подключено'),
+            title: Text(l10n.setAccountsAndConnections),
+            subtitle: Text(l10n.setAccountsConnected(accounts.length)),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const AccountsScreen())),
           ),
 
           const Divider(),
-          const _SectionHeader('О приложении'),
-          const ListTile(
-            title: Text('Calenfi'),
-            subtitle: Text('Local-first агрегатор календарей · MVP'),
+          _SectionHeader(l10n.setLanguage),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: Text(l10n.setLanguage),
+            trailing: DropdownButton<String?>(
+              value: ref.watch(localeProvider)?.languageCode,
+              onChanged: (v) => ref
+                  .read(localeProvider.notifier)
+                  .set(v == null ? null : Locale(v)),
+              items: [
+                DropdownMenuItem(
+                    value: null, child: Text(l10n.setLanguageSystem)),
+                for (final code in LocaleNotifier.supported)
+                  DropdownMenuItem(
+                      value: code, child: Text(languageName(code))),
+              ],
+            ),
+          ),
+
+          const Divider(),
+          _SectionHeader(l10n.setAbout),
+          ListTile(
+            title: const Text('Calenfi'),
+            subtitle: Text(l10n.setAboutSubtitle),
           ),
         ],
       );
@@ -141,6 +160,7 @@ class _AccountCalendars extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = L10n.of(context);
     final repo = ref.read(accountRepositoryProvider);
     final visibleCount = calendars.where((c) => c.visible).length;
     final bool? groupValue = calendars.isEmpty
@@ -201,7 +221,7 @@ class _AccountCalendars extends ConsumerWidget {
                       ? Icons.notifications_off_outlined
                       : Icons.notifications_active_outlined,
                   size: 16),
-              label: Text(_reminderLabel(c.defaultReminderMinutes),
+              label: Text(_reminderLabel(context, c.defaultReminderMinutes),
                   style: const TextStyle(fontSize: 12)),
               style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -242,10 +262,10 @@ class _AccountCalendars extends ConsumerWidget {
             ),
           ),
         if (calendars.isEmpty)
-          const Padding(
-            padding: EdgeInsets.fromLTRB(40, 0, 16, 8),
-            child:
-                Text('нет календарей', style: TextStyle(color: Colors.grey)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(40, 0, 16, 8),
+            child: Text(l10n.setNoCalendars,
+                style: const TextStyle(color: Colors.grey)),
           ),
       ],
     );
@@ -297,7 +317,7 @@ class _ColorSwatch extends StatelessWidget {
       );
 }
 
-/// Палитра выбора цвета календаря (FR-A9) + сброс к цвету источника.
+/// Палитра выбора цвета календаря + сброс к цвету источника.
 const _palette = <int>[
   0xFFE53935, 0xFFD81B60, 0xFF8E24AA, 0xFF5E35B1, 0xFF3949AB,
   0xFF1E88E5, 0xFF039BE5, 0xFF00ACC1, 0xFF00897B, 0xFF43A047,
@@ -307,11 +327,12 @@ const _palette = <int>[
 
 Future<void> _pickName(
     BuildContext context, AccountRepository repo, Calendar c) async {
+  final l10n = L10n.of(context);
   final ctrl = TextEditingController(text: c.effectiveName);
   await showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Переименовать календарь'),
+      title: Text(l10n.setRenameCalendar),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,14 +340,14 @@ Future<void> _pickName(
           TextField(
             controller: ctrl,
             autofocus: true,
-            decoration: const InputDecoration(hintText: 'Имя календаря'),
+            decoration: InputDecoration(hintText: l10n.setCalendarNameHint),
             onSubmitted: (v) {
               repo.setCalendarName(c.id, v);
               Navigator.pop(ctx);
             },
           ),
           const SizedBox(height: 6),
-          Text('Из источника: ${c.name}',
+          Text(l10n.setFromSource(c.name),
               style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ],
       ),
@@ -337,16 +358,16 @@ Future<void> _pickName(
               repo.setCalendarName(c.id, null); // сброс к имени источника
               Navigator.pop(ctx);
             },
-            child: const Text('Сбросить'),
+            child: Text(l10n.setReset),
           ),
         TextButton(
-            onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
+            onPressed: () => Navigator.pop(ctx), child: Text(l10n.setCancel)),
         FilledButton(
           onPressed: () {
             repo.setCalendarName(c.id, ctrl.text);
             Navigator.pop(ctx);
           },
-          child: const Text('Сохранить'),
+          child: Text(l10n.setSave),
         ),
       ],
     ),
@@ -355,10 +376,11 @@ Future<void> _pickName(
 
 Future<void> _pickColor(
     BuildContext context, AccountRepository repo, Calendar c) async {
+  final l10n = L10n.of(context);
   await showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text('Цвет: ${c.effectiveName}'),
+      title: Text(l10n.setColorTitle(c.effectiveName)),
       content: SizedBox(
         width: 320,
         child: Wrap(
@@ -394,38 +416,40 @@ Future<void> _pickColor(
               repo.setCalendarColor(c.id, null);
               Navigator.pop(ctx);
             },
-            child: const Text('Сбросить к цвету источника'),
+            child: Text(l10n.setResetColor),
           ),
         TextButton(
-            onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
+            onPressed: () => Navigator.pop(ctx), child: Text(l10n.setCancel)),
       ],
     ),
   );
 }
 
-// ───────── напоминания по умолчанию (FR-N) ─────────
+// ───────── напоминания по умолчанию ─────────
 
 /// Варианты дефолтного напоминания календаря: null = нет, 0 = в момент начала.
 const _reminderOptions = <int?>[null, 0, 5, 10, 15, 30, 60];
 
-String _reminderLabel(int? minutes) {
-  if (minutes == null) return 'без';
-  if (minutes == 0) return 'в начале';
-  if (minutes % 60 == 0) return 'за ${minutes ~/ 60} ч';
-  return 'за $minutes мин';
+String _reminderLabel(BuildContext context, int? minutes) {
+  final l10n = L10n.of(context);
+  if (minutes == null) return l10n.setReminderNone;
+  if (minutes == 0) return l10n.setReminderAtStart;
+  if (minutes % 60 == 0) return l10n.setReminderHours(minutes ~/ 60);
+  return l10n.setReminderMinutes(minutes);
 }
 
 Future<void> _pickReminder(
     BuildContext context, AccountRepository repo, Calendar c) async {
+  final l10n = L10n.of(context);
   await showDialog<void>(
     context: context,
     builder: (ctx) => SimpleDialog(
-      title: Text('Напоминание: ${c.effectiveName}'),
+      title: Text(l10n.setReminderTitle(c.effectiveName)),
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
-          child: Text('По умолчанию для событий этого календаря',
-              style: TextStyle(color: Colors.grey, fontSize: 12)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+          child: Text(l10n.setReminderSubtitle,
+              style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ),
         RadioGroup<int?>(
           groupValue: c.defaultReminderMinutes,
@@ -441,10 +465,10 @@ Future<void> _pickReminder(
                   dense: true,
                   value: opt,
                   title: Text(opt == null
-                      ? 'Без напоминания'
+                      ? l10n.setReminderNoneFull
                       : opt == 0
-                          ? 'В момент начала'
-                          : _reminderLabel(opt)),
+                          ? l10n.setReminderAtStartFull
+                          : _reminderLabel(context, opt)),
                 ),
             ],
           ),

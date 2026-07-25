@@ -8,6 +8,7 @@ import '../../domain/models/account.dart';
 import '../../domain/models/calendar.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/models/refresh_policy.dart';
+import '../../l10n/app_localizations.dart';
 import 'add_account_sheet.dart';
 
 /// Экран учётных записей (FR-A): список УЗ, статусы, календари с тумблерами
@@ -22,10 +23,10 @@ class AccountsScreen extends ConsumerWidget {
     final calendars = calendarsAsync.value ?? const <Calendar>[];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Учётные записи')),
+      appBar: AppBar(title: Text(L10n.of(context).accTitle)),
       body: accountsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (e, _) => Center(child: Text(L10n.of(context).accError(e.toString()))),
         data: (accounts) => ListView(
           children: [
             for (final acc in accounts)
@@ -40,7 +41,7 @@ class AccountsScreen extends ConsumerWidget {
               child: OutlinedButton.icon(
                 onPressed: () => openAddAccount(context),
                 icon: const Icon(Icons.add),
-                label: const Text('Добавить учётную запись'),
+                label: Text(L10n.of(context).accAddAccount),
               ),
             ),
           ],
@@ -57,10 +58,11 @@ class _AccountTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = L10n.of(context);
     return ExpansionTile(
       leading: _providerIcon(account.provider),
       title: Text(account.displayName),
-      subtitle: Text('${account.email} · ${_statusLabel(account.status)}'),
+      subtitle: Text('${account.email} · ${_statusLabel(context, account.status)}'),
       trailing: PopupMenuButton<String>(
         onSelected: (v) async {
           if (v == 'delete') {
@@ -73,9 +75,9 @@ class _AccountTile extends ConsumerWidget {
         },
         itemBuilder: (_) => [
           if (_usesPassword(account.provider))
-            const PopupMenuItem(
-                value: 'password', child: Text('Изменить пароль')),
-          const PopupMenuItem(value: 'delete', child: Text('Удалить')),
+            PopupMenuItem(
+                value: 'password', child: Text(l10n.accChangePassword)),
+          PopupMenuItem(value: 'delete', child: Text(l10n.accDelete)),
         ],
       ),
       children: [
@@ -83,7 +85,7 @@ class _AccountTile extends ConsumerWidget {
         ListTile(
           dense: true,
           leading: const Icon(Icons.sync, size: 20),
-          title: const Text('Автообновление'),
+          title: Text(l10n.accAutoRefresh),
           trailing: DropdownButton<int?>(
             value: account.refresh.mode == RefreshMode.manual
                 ? null
@@ -96,14 +98,14 @@ class _AccountTile extends ConsumerWidget {
                       interval: Duration(minutes: m));
               ref.read(accountRepositoryProvider).setRefresh(account.id, policy);
             },
-            items: const [
-              DropdownMenuItem(value: null, child: Text('Вручную')),
-              DropdownMenuItem(value: 1, child: Text('1 мин')),
-              DropdownMenuItem(value: 5, child: Text('5 мин')),
-              DropdownMenuItem(value: 10, child: Text('10 мин')),
-              DropdownMenuItem(value: 15, child: Text('15 мин')),
-              DropdownMenuItem(value: 30, child: Text('30 мин')),
-              DropdownMenuItem(value: 60, child: Text('1 час')),
+            items: [
+              DropdownMenuItem(value: null, child: Text(l10n.accManual)),
+              DropdownMenuItem(value: 1, child: Text(l10n.accMinutes(1))),
+              DropdownMenuItem(value: 5, child: Text(l10n.accMinutes(5))),
+              DropdownMenuItem(value: 10, child: Text(l10n.accMinutes(10))),
+              DropdownMenuItem(value: 15, child: Text(l10n.accMinutes(15))),
+              DropdownMenuItem(value: 30, child: Text(l10n.accMinutes(30))),
+              DropdownMenuItem(value: 60, child: Text(l10n.accHour1)),
             ],
           ),
         ),
@@ -118,15 +120,15 @@ class _AccountTile extends ConsumerWidget {
             title: Text(c.name),
             trailing: c.visible
                 ? null
-                : const Text('скрыт',
-                    style: TextStyle(color: Colors.grey, fontSize: 12)),
+                : Text(l10n.accHidden,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
           ),
         if (calendars.isEmpty)
-          const ListTile(dense: true, title: Text('Нет календарей')),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: Text('Видимость календарей — в Настройки → Календари',
-              style: TextStyle(color: Colors.grey, fontSize: 12)),
+          ListTile(dense: true, title: Text(l10n.accNoCalendars)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Text(l10n.accVisibilityHint,
+              style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ),
       ],
     );
@@ -139,6 +141,7 @@ class _AccountTile extends ConsumerWidget {
   /// Диалог ввода нового пароля → запись в secrets.env → пересоздание
   /// провайдеров и немедленный синк, чтобы аккаунт снова подключился.
   Future<void> _changePassword(BuildContext context, WidgetRef ref) async {
+    final l10n = L10n.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final pass = await showDialog<String>(
       context: context,
@@ -152,9 +155,9 @@ class _AccountTile extends ConsumerWidget {
     await writeSecret(varName, pass);
     // Сбрасываем кэш провайдеров, чтобы новый пароль подхватился, и синкаем.
     ref.invalidate(providerRegistryProvider);
-    messenger.showSnackBar(const SnackBar(
-        content: Text('Пароль сохранён, синхронизирую…'),
-        duration: Duration(seconds: 2)));
+    messenger.showSnackBar(SnackBar(
+        content: Text(l10n.accPasswordSaved),
+        duration: const Duration(seconds: 2)));
     await ref.read(syncTriggerProvider)();
   }
 
@@ -168,13 +171,16 @@ class _AccountTile extends ConsumerWidget {
     return CircleAvatar(child: Icon(icon, size: 18));
   }
 
-  String _statusLabel(AccountStatus s) => switch (s) {
-        AccountStatus.ok => 'подключён',
-        AccountStatus.authError => 'ошибка авторизации',
-        AccountStatus.needsReconnect => 'требуется переподключение',
-        AccountStatus.syncError => 'сбой синхронизации',
-        AccountStatus.offline => 'нет сети',
-      };
+  String _statusLabel(BuildContext context, AccountStatus s) {
+    final l10n = L10n.of(context);
+    return switch (s) {
+      AccountStatus.ok => l10n.accStatusOk,
+      AccountStatus.authError => l10n.accStatusAuthError,
+      AccountStatus.needsReconnect => l10n.accStatusNeedsReconnect,
+      AccountStatus.syncError => l10n.accStatusSyncError,
+      AccountStatus.offline => l10n.accStatusOffline,
+    };
+  }
 }
 
 /// Диалог ввода нового пароля учётной записи (CalDAV app-password / EWS).
@@ -198,8 +204,9 @@ class _PasswordDialogState extends State<_PasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
     return AlertDialog(
-      title: const Text('Новый пароль'),
+      title: Text(l10n.accNewPassword),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,9 +220,8 @@ class _PasswordDialogState extends State<_PasswordDialog> {
             obscureText: _obscure,
             onSubmitted: (v) => Navigator.pop(context, v),
             decoration: InputDecoration(
-              labelText: 'Пароль',
-              helperText:
-                  'Для CalDAV — пароль приложения, не основной пароль почты',
+              labelText: l10n.accPassword,
+              helperText: l10n.accCaldavPasswordHelper,
               helperMaxLines: 2,
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
@@ -228,10 +234,10 @@ class _PasswordDialogState extends State<_PasswordDialog> {
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена')),
+            child: Text(l10n.accCancel)),
         FilledButton(
           onPressed: () => Navigator.pop(context, _controller.text),
-          child: const Text('Сохранить'),
+          child: Text(l10n.accSave),
         ),
       ],
     );

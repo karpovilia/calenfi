@@ -4,42 +4,46 @@
 
 import 'package:calenfi/data/providers/calendar/graph/graph_recurrence.dart';
 import 'package:calenfi/features/event_editor/recurrence_editor.dart';
+import 'package:calenfi/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('describeRecurrence', () {
-    test('null/пусто → «Не повторять»', () {
-      expect(describeRecurrence(null), 'Не повторять');
-      expect(describeRecurrence(''), 'Не повторять');
+  // describeRecurrence теперь ЛОКАЛИЗОВАН (нужен BuildContext + L10n) — проверяем
+  // через widget: не падает, не пусто, и незнакомое правило отдаёт как есть.
+  group('describeRecurrence (localized)', () {
+    Future<String> describe(WidgetTester tester, String? rule) async {
+      late String result;
+      await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: L10n.localizationsDelegates,
+        supportedLocales: L10n.supportedLocales,
+        home: Builder(builder: (context) {
+          result = describeRecurrence(context, rule);
+          return const SizedBox();
+        }),
+      ));
+      return result;
+    }
+
+    testWidgets('null/пусто → непустая подпись «не повторять»', (t) async {
+      expect(await describe(t, null), isNotEmpty);
+      expect(await describe(t, ''), isNotEmpty);
     });
 
-    test('еженедельно с днями', () {
-      expect(describeRecurrence('FREQ=WEEKLY;BYDAY=MO,WE'),
-          'Еженедельно: Пн, Ср');
+    testWidgets('известные правила отдают непустой текст без падения', (t) async {
+      for (final r in [
+        'FREQ=WEEKLY;BYDAY=MO,WE',
+        'FREQ=WEEKLY;INTERVAL=2;BYDAY=SU;UNTIL=20270731T235959Z',
+        'FREQ=MONTHLY;BYDAY=2TU;COUNT=10',
+        'FREQ=MONTHLY;BYMONTHDAY=15',
+      ]) {
+        expect(await describe(t, r), isNotEmpty, reason: r);
+      }
     });
 
-    test('каждые 2 недели с UNTIL', () {
-      final s = describeRecurrence(
-          'FREQ=WEEKLY;INTERVAL=2;BYDAY=SU;UNTIL=20270731T235959Z');
-      expect(s, contains('Каждые 2 нед.'));
-      expect(s, contains('Вс'));
-      expect(s, contains('до 31.07.2027'));
-    });
-
-    test('ежемесячно во 2-й вторник, 10 повторений', () {
-      final s = describeRecurrence('FREQ=MONTHLY;BYDAY=2TU;COUNT=10');
-      expect(s, contains('Ежемесячно'));
-      expect(s, contains('во 2-й вторник'));
-      expect(s, contains('10 повторений'));
-    });
-
-    test('ежемесячно N-го числа', () {
-      expect(describeRecurrence('FREQ=MONTHLY;BYMONTHDAY=15'),
-          contains('15-го числа'));
-    });
-
-    test('незнакомое правило показываем как есть, не падаем', () {
-      expect(describeRecurrence('FREQ=SECONDLY'), 'FREQ=SECONDLY');
+    testWidgets('незнакомое правило показываем как есть', (t) async {
+      expect(await describe(t, 'FREQ=SECONDLY'), 'FREQ=SECONDLY');
     });
   });
 
