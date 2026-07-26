@@ -1,31 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <defs>
-    <filter id="sh" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="14" stdDeviation="22" flood-color="#000000" flood-opacity="0.20"/>
-    </filter>
-  </defs>
-  <!-- adaptive foreground: глиф в safe-zone (~62% центра, 108dp → ~66dp) -->
-  <g transform="translate(512,512) scale(0.60) translate(-512,-512)">
-    <g filter="url(#sh)">
-      <rect x="212" y="248" width="600" height="560" rx="72" fill="#FFFFFF"/>
-      <path d="M212 320 a72 72 0 0 1 72 -72 h456 a72 72 0 0 1 72 72 v56 H212 Z" fill="#EEF0FF"/>
-    </g>
-    <g fill="#3B3F8F">
-      <rect x="336" y="196" width="40" height="108" rx="20"/>
-      <rect x="648" y="196" width="40" height="108" rx="20"/>
-    </g>
-    <g>
-      <circle cx="322" cy="470" r="34" fill="#E5457A"/>
-      <circle cx="462" cy="470" r="34" fill="#E8EAF5"/>
-      <circle cx="602" cy="470" r="34" fill="#33B27B"/>
-      <circle cx="702" cy="470" r="34" fill="#E8EAF5"/>
-      <circle cx="322" cy="600" r="34" fill="#E8EAF5"/>
-      <rect x="416" y="554" width="92" height="92" rx="30" fill="#5B6CF0"/>
-      <circle cx="602" cy="600" r="34" fill="#F4A63B"/>
-      <circle cx="702" cy="600" r="34" fill="#E8EAF5"/>
-      <circle cx="322" cy="700" r="34" fill="#E8EAF5"/>
-      <circle cx="462" cy="700" r="34" fill="#E8EAF5"/>
-      <circle cx="602" cy="700" r="34" fill="#E8EAF5"/>
-    </g>
-  </g>
+<defs><filter id="sh" x="-25%" y="-25%" width="150%" height="150%"><feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#0A2A50" flood-opacity="0.35"/></filter><clipPath id="tile"><rect width="1024" height="1024" rx="224"/></clipPath></defs>
+<g transform="translate(512,512) scale(0.64) translate(-512,-510)">
+<g stroke="#CFE6FF" stroke-width="1.6" opacity="0.5" stroke-linecap="round"><line x1="512.0" y1="510" x2="842.0" y2="510.0"/><line x1="512.0" y1="510" x2="830.8" y2="595.4"/><line x1="512.0" y1="510" x2="797.8" y2="675.0"/><line x1="512.0" y1="510" x2="745.3" y2="743.3"/><line x1="512.0" y1="510" x2="677.0" y2="795.8"/><line x1="512.0" y1="510" x2="597.4" y2="828.8"/><line x1="512.0" y1="510" x2="512.0" y2="840.0"/><line x1="512.0" y1="510" x2="426.6" y2="828.8"/><line x1="512.0" y1="510" x2="347.0" y2="795.8"/><line x1="512.0" y1="510" x2="278.7" y2="743.3"/><line x1="512.0" y1="510" x2="226.2" y2="675.0"/><line x1="512.0" y1="510" x2="193.2" y2="595.4"/><line x1="512.0" y1="510" x2="182.0" y2="510.0"/><line x1="512.0" y1="510" x2="193.2" y2="424.6"/><line x1="512.0" y1="510" x2="226.2" y2="345.0"/><line x1="512.0" y1="510" x2="278.7" y2="276.7"/><line x1="512.0" y1="510" x2="347.0" y2="224.2"/><line x1="512.0" y1="510" x2="426.6" y2="191.2"/><line x1="512.0" y1="510" x2="512.0" y2="180.0"/><line x1="512.0" y1="510" x2="597.4" y2="191.2"/><line x1="512.0" y1="510" x2="677.0" y2="224.2"/><line x1="512.0" y1="510" x2="745.3" y2="276.7"/><line x1="512.0" y1="510" x2="797.8" y2="345.0"/><line x1="512.0" y1="510" x2="830.8" y2="424.6"/></g><rect x="212" y="240" width="600" height="600" rx="4" fill="none" stroke="#CFE6FF" stroke-width="5" opacity="0.92"/><circle cx="512.0" cy="510" r="330" fill="none" stroke="#CFE6FF" stroke-width="5" opacity="0.92"/><path d="M 734.49 420.00 A 240.0 240.0 0 1 0 734.49 600.00 L 624.41 600.00 A 144.0 144.0 0 1 1 624.41 420.00 Z" fill="#F5FBFF" stroke="#12467F" stroke-width="2" filter="url(#sh)"/>
+</g>
 </svg>
